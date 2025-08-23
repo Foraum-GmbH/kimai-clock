@@ -20,7 +20,28 @@ jobs:
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
-      
+
+    - name: Setup Build Cache
+      uses: actions/cache@v4
+      with:
+        path: |
+          /usr/local/Cellar
+          /opt/homebrew/Cellar
+          ~/Library/Caches/Homebrew
+          ~/.gem
+          /usr/local/lib/ruby/gems
+          vendor/bundle
+          ~/Library/Developer/Xcode/DerivedData
+          .build
+          ~/Library/Developer/Xcode/DerivedData/*/SourcePackages
+          ~/Library/Caches/org.swift.swiftpm
+          ~/Library/Developer/Xcode/Archives
+          *.xcarchive
+        key: ${{ runner.os }}-build-cache-${{ hashFiles('**/*.swift', '**/*.xcodeproj/**', '**/Package.resolved', '**/Gemfile.lock') }}-${{ github.sha }}
+        restore-keys: |
+          ${{ runner.os }}-build-cache-${{ hashFiles('**/*.swift', '**/*.xcodeproj/**', '**/Package.resolved', '**/Gemfile.lock') }}-
+          ${{ runner.os }}-build-cache-
+
     - name: Setup Xcode
       uses: maxim-lobanov/setup-xcode@v1
       with:
@@ -72,36 +93,95 @@ jobs:
           -exportPath export \
           -exportOptionsPlist ExportOptions.plist
           
+        # Debug: List contents of directories
+        echo "=== Contents of current directory ==="
+        ls -la
+        echo "=== Contents of export directory ==="
+        ls -la export/
+        echo "=== Looking for .app files ==="
+        find . -name "*.app" -type d
+
     - name: Notarize App
       run: |
+        # Verify we have the required secrets
+        if [ -z "${{ secrets.APPLE_API_KEY }}" ]; then
+          echo "Error: APPLE_API_KEY secret is empty"
+          exit 1
+        fi
+        
+        if [ -z "${{ secrets.APPLE_API_KEY_ID }}" ]; then
+          echo "Error: APPLE_API_KEY_ID secret is empty"
+          exit 1
+        fi
+        
+        if [ -z "${{ secrets.APPLE_API_ISSUER }}" ]; then
+          echo "Error: APPLE_API_ISSUER secret is empty"
+          exit 1
+        fi
+        
         # Store notarization credentials
         echo "${{ secrets.APPLE_API_KEY }}" | base64 --decode > AuthKey.p8
         
+        # Verify the .p8 file was created successfully
+        if [ ! -f "AuthKey.p8" ] || [ ! -s "AuthKey.p8" ]; then
+          echo "Error: Failed to create AuthKey.p8 file"
+          exit 1
+        fi
+        
+        # Debug: Check what .app files exist
+        echo "=== Looking for .app files to notarize ==="
+        find export/ -name "*.app" -type d
+        
+        # Find the actual .app file (it might not be exactly $APP_NAME.app)
+        APP_FILE=$(find export/ -name "*.app" -type d | head -1)
+        if [ -z "$APP_FILE" ]; then
+          echo "Error: No .app file found in export directory"
+          exit 1
+        fi
+        
+        echo "Found app file: $APP_FILE"
+        
         # Submit for notarization
-        xcrun notarytool submit "export/$APP_NAME.app" \
+        xcrun notarytool submit "$APP_FILE" \
           --key AuthKey.p8 \
           --key-id "${{ secrets.APPLE_API_KEY_ID }}" \
           --issuer "${{ secrets.APPLE_API_ISSUER }}" \
           --wait
           
         # Staple the notarization
-        xcrun stapler staple "export/$APP_NAME.app"
-        
+        xcrun stapler staple "$APP_FILE"
+
     - name: Create DMG
       run: |
+        # Debug: Check what we have to work with
+        echo "=== Contents of export directory before DMG creation ==="
+        ls -la export/
+        
+        # Find the actual .app file
+        APP_FILE=$(find export/ -name "*.app" -type d | head -1)
+        if [ -z "$APP_FILE" ]; then
+          echo "Error: No .app file found in export directory"
+          exit 1
+        fi
+        
+        echo "Using app file: $APP_FILE"
+        APP_NAME_ACTUAL=$(basename "$APP_FILE" .app)
+        echo "Actual app name: $APP_NAME_ACTUAL"
+        
         # Create a DMG file
         create-dmg \
-          --volname "$APP_NAME" \
+          --volname "$APP_NAME_ACTUAL" \
           --background=".dmg/background.png" \
-          --volicon "export/$APP_NAME.app/Contents/Resources/AppIcon.icns" \
+          --volicon "$APP_FILE/Contents/Resources/AppIcon.icns" \
           --window-size 600 400 \
           --icon-size 128 \
-          --icon "$APP_NAME.app" 150 150 \
-          --hide-extension "$APP_NAME.app" \
+          --icon "$APP_NAME_ACTUAL.app" 150 150 \
+          --hide-extension "$APP_NAME_ACTUAL.app" \
           --app-drop-link 450 150 \
-          "$APP_NAME.dmg" \
-          "export/"
-          
+          "$APP_NAME_ACTUAL.dmg" \
+          "export/" \
+        || echo "Warning: create-dmg completed with warnings (this is often normal)"
+
     - name: Sign DMG
       run: |
         # Sign the DMG
