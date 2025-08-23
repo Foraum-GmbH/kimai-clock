@@ -1,0 +1,24 @@
+# Xcode
+build/
+DerivedData/
+*.xcworkspace
+xcuserdata/
+*.moved-aside
+*.xcuserstate
+
+# Swift Package Manager
+/.build/
+Package.resolved
+
+# macOS
+.DS_Store
+
+# Xcode Archives
+*.xcarchive
+
+# App-specific
+*.app
+*.dmg
+
+# Other
+*.env
