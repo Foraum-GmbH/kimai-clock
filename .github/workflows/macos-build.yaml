@@ -21,7 +21,7 @@ jobs:
 
       - name: Build and Archive (SPM)
         run: |
-          xcodebuild -workspace KimaiClock.xcodeproj \
+          xcodebuild -project KimaiClock.xcodeproj \
                      -scheme KimaiClock \
                      -configuration Release \
                      -sdk macosx \
