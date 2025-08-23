@@ -37,7 +37,6 @@ jobs:
                      -scheme KimaiClock \
                      -configuration Release \
                      -sdk macosx \
-                     -arch arm64 \
                      -archivePath ${{ github.workspace }}/build/KimaiClock.xcarchive \
                      -destination 'platform=macOS,arch=arm64' \
                      clean archive | xcpretty
