@@ -92,14 +92,6 @@ jobs:
           -exportArchive \
           -exportPath export \
           -exportOptionsPlist ExportOptions.plist
-          
-        # Debug: List contents of directories
-        echo "=== Contents of current directory ==="
-        ls -la
-        echo "=== Contents of export directory ==="
-        ls -la export/
-        echo "=== Looking for .app files ==="
-        find . -name "*.app" -type d
 
     - name: Notarize App
       run: |
