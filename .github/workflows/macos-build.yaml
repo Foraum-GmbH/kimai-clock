@@ -144,7 +144,7 @@ jobs:
         # Create a DMG file
         create-dmg \
           --volname "$APP_NAME_ACTUAL" \
-          --background "./../.dmg/background.png" \
+          --background "./.dmg/background.png" \
           --volicon "$APP_FILE/Contents/Resources/AppIcon.icns" \
           --window-size 600 400 \
           --icon-size 128 \
@@ -158,28 +158,28 @@ jobs:
     - name: Sign DMG
       run: |
         # Sign the DMG
-        codesign --force --sign "${{ secrets.DEVELOPER_ID_APPLICATION }}" "$APP_NAME.dmg"
+        codesign --force --sign "${{ secrets.DEVELOPER_ID_APPLICATION }}" "export/$APP_NAME.dmg"
         
         # Verify signing
-        codesign --verify --verbose "$APP_NAME.dmg"
-        
+        codesign --verify --verbose "export/$APP_NAME.dmg"
+
     - name: Notarize DMG
       run: |
         # Submit DMG for notarization
-        xcrun notarytool submit "$APP_NAME.dmg" \
+        xcrun notarytool submit "export/$APP_NAME.dmg" \
           --key AuthKey.p8 \
           --key-id "${{ secrets.APPLE_API_KEY_ID }}" \
           --issuer "${{ secrets.APPLE_API_ISSUER }}" \
           --wait
           
         # Staple the notarization to DMG
-        xcrun stapler staple "$APP_NAME.dmg"
-        
+        xcrun stapler staple "export/$APP_NAME.dmg"
+
     - name: Verify Notarization
       run: |
         # Verify the notarization was successful
-        spctl --assess --type open --context context:primary-signature "$APP_NAME.dmg"
-        
+        spctl --assess --type open --context context:primary-signature "export/$APP_NAME.dmg"
+
     - name: Get release info
       id: release_info
       run: |
