@@ -95,7 +95,7 @@ jobs:
           -exportPath export \
           -exportOptionsPlist ExportOptions.plist
 
-    - name: Notarize App
+    - name: Prepare Notarization
       run: |
         # Verify we have the required secrets
         if [ -z "$APPLE_API_KEY" ]; then
@@ -143,16 +143,6 @@ jobs:
         fi
         
         echo "Found app file: $APP_FILE"
-        
-        # Submit for notarization
-        xcrun notarytool submit "$APP_FILE" \
-          --key AuthKey.p8 \
-          --key-id "${{ secrets.APPLE_API_KEY_ID }}" \
-          --issuer "${{ secrets.APPLE_API_ISSUER }}" \
-          --wait
-          
-        # Staple the notarization
-        xcrun stapler staple "$APP_FILE"
 
     - name: Create DMG
       run: |
