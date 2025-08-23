@@ -12,104 +12,29 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 1
+          show-progress: false
 
       - name: Set up Xcode
         uses: maxim-lobanov/setup-xcode@v1
         with:
           xcode-version: latest-stable
 
-      - name: Install xcpretty
-        run: gem install xcpretty
+      - name: Install Fastlane
+        run: gem install fastlane
 
-      - name: Set up signing certificate
+      - name: Install create-dmg
         run: |
-          echo "${{ secrets.CERT_P12 }}" | base64 --decode > developerID.p12
-          security create-keychain -p actions build.keychain
-          security import developerID.p12 -k ~/Library/Keychains/build.keychain -P ${{ secrets.CERT_P12_PASSWORD }} -T /usr/bin/codesign
-          security list-keychains -s ~/Library/Keychains/build.keychain
-          security default-keychain -s ~/Library/Keychains/build.keychain
-          security unlock-keychain -p actions ~/Library/Keychains/build.keychain
+          brew install create-dmg graphicsmagick imagemagick
 
-      - name: Build and Archive (SPM)
-        run: |
-          set -o pipefail && xcodebuild -project KimaiClock.xcodeproj \
-                     -scheme KimaiClock \
-                     -configuration Release \
-                     -sdk macosx \
-                     -archivePath ${{ github.workspace }}/build/KimaiClock.xcarchive \
-                     -destination 'platform=macOS,arch=arm64' \
-                     clean archive | xcpretty
-
-      - name: Export .app
-        run: |
-          xcodebuild -exportArchive \
-                     -archivePath ${{ github.workspace }}/build/KimaiClock.xcarchive \
-                     -exportPath ${{ github.workspace }}/build/KimaiClock \
-                     -exportOptionsPlist ExportOptions.plist
-
-      - name: Submit for notarization
-        id: notarize
+      - name: Run Fastlane
+        run: fastlane release
         env:
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APP_SPECIFIC_PASSWORD: ${{ secrets.APP_SPECIFIC_PASSWORD }}
           BUNDLE_ID: ${{ secrets.BUNDLE_ID }}
-        run: |
-          UUID=$(xcrun altool --notarize-app \
-            --primary-bundle-id "$BUNDLE_ID" \
-            --username "$APPLE_ID" \
-            --password "$APP_SPECIFIC_PASSWORD" \
-            --file build/KimaiClock/KimaiClock.app \
-            2>&1 | grep -o "RequestUUID = .*" | awk '{print $3}')
-          echo "uuid=$UUID" >> $GITHUB_OUTPUT
-
-      - name: Wait for notarization to complete
-        env:
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APP_SPECIFIC_PASSWORD: ${{ secrets.APP_SPECIFIC_PASSWORD }}
-        run: |
-          UUID=${{ steps.notarize.outputs.uuid }}
-          STATUS="in progress"
-          while [[ "$STATUS" == "in progress" ]]; do
-            echo "Checking notarization status..."
-            STATUS=$(xcrun altool --notarization-info "$UUID" \
-              --username "$APPLE_ID" \
-              --password "$APP_SPECIFIC_PASSWORD" 2>&1 | grep "Status:" | awk '{print $2}')
-            if [[ "$STATUS" == "success" ]]; then
-              echo "Notarization successful!"
-              break
-            elif [[ "$STATUS" == "invalid" ]]; then
-              echo "Notarization failed."
-              exit 1
-            fi
-            sleep 30
-          done
-
-      - name: Staple notarization ticket
-        run: |
-          xcrun stapler staple build/KimaiClock/KimaiClock.app
-
-      - name: Install dependencies for create-dmg
-        run: |
-          brew install graphicsmagick imagemagick
-
-      - name: Install create-dmg
-        run: |
-          npm install -g create-dmg
-
-      - name: Create DMG
-        run: |
-          create-dmg \
-            'build/KimaiClock/KimaiClock.app' \
-            'build/' \
-            --overwrite \
-            --dmg-title="KimaiClock" \
-            --background=".dmg/background.png" \
-            --window-size 600 400 \
-            --icon-size 128 \
-            --icon "KimaiClock.app" 150 150 \
-            --app-drop-link 450 150 \
-            build/KimaiClock/KimaiClock.dmg
 
       - name: Compute SHA256
         id: hash

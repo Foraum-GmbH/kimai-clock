@@ -20,5 +20,10 @@ Package.resolved
 *.app
 *.dmg
 
+# Fastlane
+fastlane/report.xml
+fastlane/Preview.html
+
 # Other
 *.env
+*.secrets
