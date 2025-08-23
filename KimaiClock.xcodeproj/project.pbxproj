@@ -8,10 +8,14 @@
 
 /* Begin PBXBuildFile section */
 		12B7E9AE2E59A17B0035700A /* LaunchAtLogin in Frameworks */ = {isa = PBXBuildFile; productRef = 12B7E9AD2E59A17B0035700A /* LaunchAtLogin */; };
+		12B7E9F92E59DA090035700A /* README.md in Resources */ = {isa = PBXBuildFile; fileRef = 12B7E9F82E59DA090035700A /* README.md */; };
+		12B7E9FC2E59DA090035700A /* LICENSE.md in Resources */ = {isa = PBXBuildFile; fileRef = 12B7E9F72E59DA090035700A /* LICENSE.md */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		129FFA742E58CD36007B73D3 /* KimaiClock.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = KimaiClock.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		12B7E9F72E59DA090035700A /* LICENSE.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = LICENSE.md; sourceTree = "<group>"; };
+		12B7E9F82E59DA090035700A /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -50,6 +54,8 @@
 		129FFA6B2E58CD36007B73D3 = {
 			isa = PBXGroup;
 			children = (
+				12B7E9F72E59DA090035700A /* LICENSE.md */,
+				12B7E9F82E59DA090035700A /* README.md */,
 				129FFA762E58CD36007B73D3 /* KimaiClock */,
 				129FFA752E58CD36007B73D3 /* Products */,
 			);
@@ -132,6 +138,8 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				12B7E9F92E59DA090035700A /* README.md in Resources */,
+				12B7E9FC2E59DA090035700A /* LICENSE.md in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
