@@ -20,6 +20,7 @@ struct PopupView: View {
     @StateObject private var recentActivitiesManager = RecentActivitiesManager()
     @StateObject private var subscriptionManager = SubscriptionManager()
 
+    @MainActor
     private func fetchVersion() {
         apiManager.getVersion()
             .receive(on: RunLoop.main)
