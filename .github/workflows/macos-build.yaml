@@ -144,7 +144,7 @@ jobs:
         # Create a DMG file
         create-dmg \
           --volname "$APP_NAME_ACTUAL" \
-          --background "./.dmg/background.png" \
+          --background "$GITHUB_WORKSPACE/dmg-assets/background.png" \
           --volicon "$APP_FILE/Contents/Resources/AppIcon.icns" \
           --window-size 600 400 \
           --icon-size 128 \
