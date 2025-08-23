@@ -12,6 +12,9 @@ env:
   XCODE_PROJECT: "KimaiClock.xcodeproj"
   SCHEME: "KimaiClock"
   CONFIGURATION: "Release"
+  APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
+  APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+  APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
 
 jobs:
   build-and-release:
@@ -247,8 +250,3 @@ jobs:
           ${{ env.APP_NAME }}.dmg
           ${{ env.APP_NAME }}.xcarchive
         retention-days: 30
-
-  env:
-    APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
-    APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
-    APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
