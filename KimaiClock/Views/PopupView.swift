@@ -23,8 +23,11 @@ struct PopupView: View {
     @MainActor
     private func fetchVersion() {
         apiManager.getVersion()
-            .receive(on: RunLoop.main)
-            .assign(to: &apiManager.$serverVersion)
+            .receive(on: DispatchQueue.main) // ensures main thread
+            .sink { [weak apiManager] value in
+                apiManager?.serverVersion = value
+            }
+            .store(in: &subscriptionManager.cancellables)
     }
 
     var body: some View {

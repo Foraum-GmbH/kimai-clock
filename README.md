@@ -1,7 +1,7 @@
 # KimaiClock
 
 <!-- Badges -->
-![Swift](https://img.shields.io/badge/Swift-6.0-brightgreen?logo=swift&logoColor=white)
+![Swift](https://img.shields.io/badge/Swift-5.0-brightgreen?logo=swift&logoColor=white)
 ![macOS](https://img.shields.io/badge/macOS-15+-brightgreen?logo=apple&logoColor=white)
 ![Notarized](https://img.shields.io/badge/Notarized-Yes-brightgreen?logo=apple&logoColor=white)
 

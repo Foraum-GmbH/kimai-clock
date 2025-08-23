@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - main
+    tags:
+      - *
 
 env:
   APP_NAME: "KimaiClock"
@@ -181,9 +183,14 @@ jobs:
     - name: Get release info
       id: release_info
       run: |
-        TAG_NAME="${GITHUB_REF#refs/tags/}"
-        echo "tag_name=$TAG_NAME" >> $GITHUB_OUTPUT
-        echo "release_name=$TAG_NAME" >> $GITHUB_OUTPUT
+        if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
+          TAG_NAME="${GITHUB_REF#refs/tags/}"
+          echo "tag_name=$TAG_NAME" >> $GITHUB_OUTPUT
+          echo "release_name=$TAG_NAME" >> $GITHUB_OUTPUT
+        else
+          echo "tag_name=latest" >> $GITHUB_OUTPUT
+          echo "release_name=Latest Build" >> $GITHUB_OUTPUT
+        fi
         
     - name: Create Release
       uses: softprops/action-gh-release@v1
