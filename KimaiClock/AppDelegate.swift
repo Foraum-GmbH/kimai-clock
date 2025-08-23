@@ -1,6 +1,7 @@
 import SwiftUI
 internal import Combine
 
+@MainActor
 class AppDelegate: NSObject, NSApplicationDelegate {
     private var cancellables = Set<AnyCancellable>()
     private var statusItem: NSStatusItem!
@@ -50,7 +51,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         )
     }
 
-    @MainActor
     @objc
     func handleClick(_ sender: NSStatusBarButton) {
         guard let event = NSApp.currentEvent else { return }

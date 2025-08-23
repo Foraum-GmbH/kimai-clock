@@ -1,15 +1,14 @@
 import SwiftUI
 internal import Combine
 
+@MainActor
 class TimerModel: ObservableObject {
     @Published var timer: TimeInterval = 0
     @Published var isActive: Bool? = nil
     private var cancellable: Timer?
 
     public func start() {
-        DispatchQueue.main.async { [weak self] in
-            self?.isActive = true
-        }
+        isActive = true
         guard cancellable == nil else { return }
         cancellable = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
             Task { @MainActor in
@@ -19,18 +18,14 @@ class TimerModel: ObservableObject {
     }
 
     public func pause() {
-        DispatchQueue.main.async { [weak self] in
-            self?.isActive = false
-        }
+        isActive = false
         cancellable?.invalidate()
         cancellable = nil
     }
 
     public func stop() {
-        DispatchQueue.main.async { [weak self] in
-            self?.isActive = nil
-            self?.timer = 0
-        }
+        isActive = nil
+        timer = 0
         cancellable?.invalidate()
         cancellable = nil
     }
