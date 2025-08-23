@@ -2,10 +2,10 @@ name: Build, Sign, Notarize and Release macOS App
 
 on:
   push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
-  workflow_dispatch:
+    branches:
+      - main
+    tags:
+      - '*'
 
 env:
   APP_NAME: "KimaiClock"
@@ -183,13 +183,9 @@ jobs:
     - name: Get release info
       id: release_info
       run: |
-        if [ "${{ github.event_name }}" == "push" ] && [[ "${{ github.ref }}" == refs/tags/* ]]; then
-          echo "tag_name=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
-          echo "release_name=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
-        else
-          echo "tag_name=latest" >> $GITHUB_OUTPUT
-          echo "release_name=Latest Build" >> $GITHUB_OUTPUT
-        fi
+        TAG_NAME="${GITHUB_REF#refs/tags/}"
+        echo "tag_name=$TAG_NAME" >> $GITHUB_OUTPUT
+        echo "release_name=$TAG_NAME" >> $GITHUB_OUTPUT
         
     - name: Create Release
       uses: softprops/action-gh-release@v1
@@ -210,12 +206,4 @@ jobs:
           **Note**: This app is signed and notarized by Apple.
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        
-    - name: Upload Build Artifacts
-      uses: actions/upload-artifact@v4
-      if: always()
-      with:
-        name: build-artifacts
-        path: |
-          ${{ env.APP_NAME }}.dmg
-        retention-days: 30
+
