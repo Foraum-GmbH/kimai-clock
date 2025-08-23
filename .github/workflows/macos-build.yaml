@@ -2,8 +2,8 @@ name: Build, Sign, Notarize and Release macOS App
 
 on:
   push:
-    branches:
-      - main
+    tags:
+      - '*'
 
 env:
   APP_NAME: "KimaiClock"
