@@ -14,11 +14,11 @@ struct PopupView: View {
     @State private var activeActivity: Activity?
 
     @State private var searchValue = ""
-    @State private var cancellables = Set<AnyCancellable>()
     private let searchSubject = PassthroughSubject<String, Never>()
 
     @StateObject private var apiManager = ApiManager()
     @StateObject private var recentActivitiesManager = RecentActivitiesManager()
+    @StateObject private var subscriptionManager = SubscriptionManager()
 
     private func fetchVersion() {
         apiManager.getVersion()
@@ -43,7 +43,7 @@ struct PopupView: View {
                                     isPlaying = true
                                 }
                             }
-                            .store(in: &cancellables)
+                            .store(in: &subscriptionManager.cancellables)
                     } else {
                         apiManager.startActivity(activity: activeActivity)
                             .sink { success in
@@ -58,7 +58,7 @@ struct PopupView: View {
                                     isPlaying = false
                                 }
                             }
-                            .store(in: &cancellables)
+                            .store(in: &subscriptionManager.cancellables)
                     }
                 }) {
                     Image(systemName: isPlaying ? "pause.fill" : "play.fill")
@@ -84,7 +84,7 @@ struct PopupView: View {
                                 isPlaying = true
                             }
                         }
-                        .store(in: &cancellables)
+                        .store(in: &subscriptionManager.cancellables)
                 }) {
                     Image(systemName: "stop.fill")
                         .frame(width: 24, height: 24)

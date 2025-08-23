@@ -7,6 +7,7 @@ enum ChimeType {
 class ChimeManager {
     @MainActor static let shared = ChimeManager()
 
+    @MainActor
     func play(_ type: ChimeType) {
         let soundID: SystemSoundID
         switch type {

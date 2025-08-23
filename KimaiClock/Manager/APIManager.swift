@@ -23,6 +23,7 @@ struct ServerVersion: Codable {
     let copyright: String
 }
 
+@MainActor
 class ApiManager: ObservableObject {
     @AppStorage("apiToken") private var apiToken: String?
     @AppStorage("serverIP") private var serverIP: String?

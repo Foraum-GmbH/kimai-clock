@@ -1,6 +1,7 @@
 import SwiftUI
 internal import Combine
 
+@MainActor
 class RecentActivitiesManager: ObservableObject {
     @AppStorage("recentActivitys") private var storedActivities: Data = Data()
 
@@ -34,17 +35,13 @@ class RecentActivitiesManager: ObservableObject {
 
     private func save() {
         if let data = try? JSONEncoder().encode(activities) {
-            DispatchQueue.main.async { [weak self] in
-                self?.storedActivities = data
-            }
+            storedActivities = data
         }
     }
 
     private func load() {
         if let decoded = try? JSONDecoder().decode([Activity].self, from: storedActivities) {
-            DispatchQueue.main.async { [weak self] in
-                self?.activities = decoded
-            }
+            activities = decoded
         }
     }
 }
