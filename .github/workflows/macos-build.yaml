@@ -19,6 +19,15 @@ jobs:
         with:
           xcode-version: latest-stable
 
+      - name: Set up signing certificate
+        run: |
+          echo "${{ secrets.CERT_P12 }}" | base64 --decode > developerID.p12
+          security create-keychain -p actions build.keychain
+          security import developerID.p12 -k ~/Library/Keychains/build.keychain -P ${{ secrets.CERT_P12_PASSWORD }} -T /usr/bin/codesign
+          security list-keychains -s ~/Library/Keychains/build.keychain
+          security default-keychain -s ~/Library/Keychains/build.keychain
+          security unlock-keychain -p actions ~/Library/Keychains/build.keychain
+
       - name: Build and Archive (SPM)
         run: |
           xcodebuild -project KimaiClock.xcodeproj \
@@ -26,6 +35,8 @@ jobs:
                      -configuration Release \
                      -sdk macosx \
                      -archivePath ${{ github.workspace }}/build/KimaiClock.xcarchive \
+                     CODE_SIGN_IDENTITY="${{ secrets.SIGNING_IDENTITY }}" \
+                     DEVELOPMENT_TEAM="${{ secrets.DEVELOPER_TEAM_ID }}" \
                      clean archive
 
       - name: Export .app
@@ -76,6 +87,10 @@ jobs:
         run: |
           xcrun stapler staple build/KimaiClock/KimaiClock.app
 
+      - name: Install dependencies for create-dmg
+        run: |
+          brew install graphicsmagick imagemagick
+
       - name: Install create-dmg
         run: |
           npm install -g create-dmg
@@ -87,7 +102,7 @@ jobs:
             'build/' \
             --overwrite \
             --dmg-title="KimaiClock" \
-            --background="dmg-resources/background.png" \
+            --background=".dmg/background.png" \
             --window-size 600 400 \
             --icon-size 128 \
             --icon "KimaiClock.app" 150 150 \
