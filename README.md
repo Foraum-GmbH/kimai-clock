@@ -1,1 +1,56 @@
-#WIP
+# KimaiClock
+
+<!-- Badges -->
+![Swift](https://img.shields.io/badge/Swift-6.0-brightgreen?logo=swift&logoColor=white)
+![macOS](https://img.shields.io/badge/macOS-15+-brightgreen?logo=apple&logoColor=white)
+![Notarized](https://img.shields.io/badge/Notarized-Yes-brightgreen?logo=apple&logoColor=white)
+
+<!-- Hero Image / App Overview -->
+![App Overview](https://placehold.co/1000x500?text=KimaiClock+Overview)
+
+---
+
+## 📖 About
+
+KimaiClock is a macOS menu bar application that integrates with [Kimai 2](https://www.kimai.org/) to help you track your time directly from your desktop.
+
+[!WARNING]  
+> This Version only works with Kimai 2 ( not the legacy Kimai 1 )
+
+---
+
+## ✨ Features
+
+- ⏱️ Start/stop Kimai Tasks from the menu bar  
+- 📊 Quick recent start Tasks
+- 🔒 Secure, Apple-notarized build  
+- ⚡ Lightweight & fast
+- 🌙 Dark mode support
+
+---
+
+## 🚀 Installation
+
+1. Go to the [Releases page](../../releases).  
+2. Download the latest `.dmg` file.  
+3. Open it and drag **KimaiClock.app** to your `Applications` folder.  
+4. Connect your Kimai Server inside the Settings
+5. Track your Tasks 🚀
+
+
+---
+
+## 🤝 Contributors
+
+<a href="https://github.com/undeadd"><img src="https://avatars.githubusercontent.com/u/000000?v=4" width="50" height="50" style="border-radius:50%"/></a>
+<a href="https://github.com/ven0m"><img src="https://avatars.githubusercontent.com/u/000001?v=4" width="50" height="50" style="border-radius:50%"/></a>
+
+Contributions, issues and feature requests are welcome!  
+Feel free to check the [issues page](../../issues).  
+
+---
+
+## 📜 License
+
+Distributed under the MIT License.  
+See [LICENSE](LICENSE) for more information.

@@ -1,49 +1,169 @@
-name: Build, Sign, Notarize, and Release macOS App
+name: Build, Sign, Notarize and Release macOS App
 
 on:
   push:
     branches: [ main ]
   pull_request:
     branches: [ main ]
+  workflow_dispatch:
+
+env:
+  APP_NAME: "KimaiClock"
+  XCODE_PROJECT: "KimaiClock.xcodeproj"
+  SCHEME: "KimaiClock"
+  CONFIGURATION: "Release"
 
 jobs:
-  build:
+  build-and-release:
     runs-on: macos-latest
-
+    
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v5
-        with:
-          fetch-depth: 1
-          show-progress: false
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Setup Xcode
+      uses: maxim-lobanov/setup-xcode@v1
+      with:
+        xcode-version: latest-stable
+        
+    - name: Install create-dmg
+      run: brew install create-dmg
+      
+    - name: Import Code-Signing Certificates
+      uses: Apple-Actions/import-codesign-certs@v2
+      with:
+        p12-file-base64: ${{ secrets.CERTIFICATES_P12 }}
+        p12-password: ${{ secrets.CERTIFICATES_P12_PASSWORD }}
 
-      - name: Set up Xcode
-        uses: maxim-lobanov/setup-xcode@v1
-        with:
-          xcode-version: latest-stable
-
-      - name: Install Fastlane
-        run: gem install fastlane
-
-      - name: Install create-dmg
-        run: |
-          brew install create-dmg graphicsmagick imagemagick
-
-      - name: Run Fastlane
-        run: fastlane release
-        env:
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APP_SPECIFIC_PASSWORD: ${{ secrets.APP_SPECIFIC_PASSWORD }}
-          BUNDLE_ID: ${{ secrets.BUNDLE_ID }}
-
-      - name: Compute SHA256
-        id: hash
-        run: |
-          shasum -a 256 build/KimaiClock/KimaiClock.dmg > build/KimaiClock/KimaiClock.dmg.sha256
-
-      - name: Upload Release Asset
-        uses: softprops/action-gh-release@v1
-        with:
-          files: build/KimaiClock/KimaiClock.dmg,build/KimaiClock/KimaiClock.dmg.sha256
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - name: Build App
+      run: |
+        xcodebuild \
+          -project "$XCODE_PROJECT" \
+          -scheme "$SCHEME" \
+          -configuration "$CONFIGURATION" \
+          -archivePath "$APP_NAME.xcarchive" \
+          -destination "generic/platform=macOS" \
+          archive
+          
+    - name: Export App
+      run: |
+        # Create ExportOptions.plist
+        cat > ExportOptions.plist << EOF
+        <?xml version="1.0" encoding="UTF-8"?>
+        <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+        <plist version="1.0">
+        <dict>
+            <key>method</key>
+            <string>developer-id</string>
+            <key>destination</key>
+            <string>export</string>
+            <key>signingStyle</key>
+            <string>automatic</string>
+            <key>teamID</key>
+            <string>${{ secrets.APPLE_TEAM_ID }}</string>
+        </dict>
+        </plist>
+        EOF
+        
+        # Export the archive
+        xcodebuild \
+          -archivePath "$APP_NAME.xcarchive" \
+          -exportArchive \
+          -exportPath export \
+          -exportOptionsPlist ExportOptions.plist
+          
+    - name: Notarize App
+      run: |
+        # Store notarization credentials
+        echo "${{ secrets.APPLE_API_KEY }}" | base64 --decode > AuthKey.p8
+        
+        # Submit for notarization
+        xcrun notarytool submit "export/$APP_NAME.app" \
+          --key AuthKey.p8 \
+          --key-id "${{ secrets.APPLE_API_KEY_ID }}" \
+          --issuer "${{ secrets.APPLE_API_ISSUER }}" \
+          --wait
+          
+        # Staple the notarization
+        xcrun stapler staple "export/$APP_NAME.app"
+        
+    - name: Create DMG
+      run: |
+        # Create a DMG file
+        create-dmg \
+          --volname "$APP_NAME" \
+          --background=".dmg/background.png" \
+          --volicon "export/$APP_NAME.app/Contents/Resources/AppIcon.icns" \
+          --window-size 600 400 \
+          --icon-size 128 \
+          --icon "$APP_NAME.app" 150 150 \
+          --hide-extension "$APP_NAME.app" \
+          --app-drop-link 450 150 \
+          "$APP_NAME.dmg" \
+          "export/"
+          
+    - name: Sign DMG
+      run: |
+        # Sign the DMG
+        codesign --force --sign "${{ secrets.DEVELOPER_ID_APPLICATION }}" "$APP_NAME.dmg"
+        
+        # Verify signing
+        codesign --verify --verbose "$APP_NAME.dmg"
+        
+    - name: Notarize DMG
+      run: |
+        # Submit DMG for notarization
+        xcrun notarytool submit "$APP_NAME.dmg" \
+          --key AuthKey.p8 \
+          --key-id "${{ secrets.APPLE_API_KEY_ID }}" \
+          --issuer "${{ secrets.APPLE_API_ISSUER }}" \
+          --wait
+          
+        # Staple the notarization to DMG
+        xcrun stapler staple "$APP_NAME.dmg"
+        
+    - name: Verify Notarization
+      run: |
+        # Verify the notarization was successful
+        spctl --assess --type open --context context:primary-signature "$APP_NAME.dmg"
+        
+    - name: Get release info
+      id: release_info
+      run: |
+        if [ "${{ github.event_name }}" == "push" ] && [[ "${{ github.ref }}" == refs/tags/* ]]; then
+          echo "tag_name=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+          echo "release_name=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+        else
+          echo "tag_name=latest" >> $GITHUB_OUTPUT
+          echo "release_name=Latest Build" >> $GITHUB_OUTPUT
+        fi
+        
+    - name: Create Release
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: ${{ steps.release_info.outputs.tag_name }}
+        name: ${{ steps.release_info.outputs.release_name }}
+        draft: false
+        prerelease: false
+        files: |
+          ${{ env.APP_NAME }}.dmg
+        body: |
+          ## Installation
+          
+          1. Download the DMG file
+          2. Double-click to mount the disk image
+          3. Drag the app to your Applications folder
+          
+          **Note**: This app is signed and notarized by Apple.
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        
+    - name: Upload Build Artifacts
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: build-artifacts
+        path: |
+          ${{ env.APP_NAME }}.dmg
+          ${{ env.APP_NAME }}.xcarchive
+        retention-days: 30
