@@ -19,6 +19,9 @@ jobs:
         with:
           xcode-version: latest-stable
 
+      - name: Install xcpretty
+        run: gem install xcpretty
+
       - name: Set up signing certificate
         run: |
           echo "${{ secrets.CERT_P12 }}" | base64 --decode > developerID.p12
@@ -30,12 +33,13 @@ jobs:
 
       - name: Build and Archive (SPM)
         run: |
-          xcodebuild -project KimaiClock.xcodeproj \
+          set -o pipefail && xcodebuild -project KimaiClock.xcodeproj \
                      -scheme KimaiClock \
                      -configuration Release \
                      -sdk macosx \
                      -archivePath ${{ github.workspace }}/build/KimaiClock.xcarchive \
-                     clean archive
+                     -destination 'platform=macOS,arch=arm64' \
+                     clean archive | xcpretty
 
       - name: Export .app
         run: |
