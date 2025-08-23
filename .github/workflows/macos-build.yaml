@@ -24,26 +24,6 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
 
-    - name: Setup Build Cache
-      uses: actions/cache@v4
-      with:
-        path: |
-          /usr/local/Cellar
-          /opt/homebrew/Cellar
-          ~/Library/Caches/Homebrew
-          ~/.gem
-          /usr/local/lib/ruby/gems
-          vendor/bundle
-          ~/Library/Developer/Xcode/DerivedData
-          .build
-          ~/Library/Developer/Xcode/DerivedData/*/SourcePackages
-          ~/Library/Caches/org.swift.swiftpm
-          ~/Library/Developer/Xcode/Archives
-          *.xcarchive
-        key: ${{ runner.os }}-build-cache-${{ hashFiles('**/*.swift', '**/*.xcodeproj/**', '**/Package.resolved', '**/Gemfile.lock') }}
-        restore-keys: |
-          ${{ runner.os }}-build-cache-
-
     - name: Setup Xcode
       uses: maxim-lobanov/setup-xcode@v1
       with:
@@ -164,7 +144,7 @@ jobs:
         # Create a DMG file
         create-dmg \
           --volname "$APP_NAME_ACTUAL" \
-          --background=".dmg/background.png" \
+          --background ".dmg/background.png" \
           --volicon "$APP_FILE/Contents/Resources/AppIcon.icns" \
           --window-size 600 400 \
           --icon-size 128 \
