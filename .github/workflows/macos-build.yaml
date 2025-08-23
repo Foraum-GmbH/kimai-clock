@@ -35,8 +35,6 @@ jobs:
                      -configuration Release \
                      -sdk macosx \
                      -archivePath ${{ github.workspace }}/build/KimaiClock.xcarchive \
-                     CODE_SIGN_IDENTITY="${{ secrets.SIGNING_IDENTITY }}" \
-                     DEVELOPMENT_TEAM="${{ secrets.DEVELOPER_TEAM_ID }}" \
                      clean archive
 
       - name: Export .app
