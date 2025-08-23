@@ -12,7 +12,9 @@ class TimerModel: ObservableObject {
         }
         guard cancellable == nil else { return }
         cancellable = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
-            self?.timer += 1
+            Task { @MainActor in
+                self?.timer += 1
+            }
         }
     }
 

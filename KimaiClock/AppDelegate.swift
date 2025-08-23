@@ -50,7 +50,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         )
     }
 
-    @objc func handleClick(_ sender: NSStatusBarButton) {
+    @MainActor
+    @objc
+    func handleClick(_ sender: NSStatusBarButton) {
         guard let event = NSApp.currentEvent else { return }
 
         if event.type == .rightMouseUp {
