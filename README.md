@@ -4,7 +4,7 @@
 ![macOS](https://img.shields.io/badge/macOS-15+-brightgreen?logo=apple&logoColor=white)
 ![Notarized](https://img.shields.io/badge/Notarized-Yes-brightgreen?logo=apple&logoColor=white)
 
-![App Overview](https://github.com/Foraum-GmbH/kimai-clock/blob/main/dmg-assets/hero.jpeg?raw=true)
+![App Overview](https://github.com/Foraum-GmbH/kimai-clock/blob/main/assets/hero.jpeg?raw=true)
 
 ## 📖 About
 
@@ -40,6 +40,7 @@ KimaiClock is a macOS menu bar application that integrates with [Kimai 2](https:
 ## 🤝 Contributors
 <a href="https://github.com/fabian-rohr"><img src="https://images.weserv.nl/?url=avatars.githubusercontent.com/u/20979750&w=300&h=300&fit=cover&mask=circle" width="50" height="50" style="border-radius:50%"/></a>
 <a href="https://github.com/undeadd"><img src="https://images.weserv.nl/?url=avatars.githubusercontent.com/u/8116188&w=300&h=300&fit=cover&mask=circle" width="50" height="50" style="border-radius:50%"/></a>
+<a href="https://github.com/dependabot"><img src="https://images.weserv.nl/?url=avatars.githubusercontent.com/u/27347476?s=200&w=300&h=300&fit=cover&mask=circle" width="50" height="50" style="border-radius:50%"/></a>
 
 Contributions, issues and feature requests are welcome!  
 Feel free to check the [issues page](../../issues).  
