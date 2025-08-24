@@ -26,7 +26,7 @@ struct ServerVersion: Codable {
 @MainActor
 class ApiManager: ObservableObject {
     @AppStorage("apiToken") private var apiToken: String?
-    @AppStorage("serverIP") private var serverIP: String?
+    @AppStorage("serverIP") public var serverIP: String?
 
     @Published var searchResults: [Activity] = []
     @Published var serverVersion: String = "..."

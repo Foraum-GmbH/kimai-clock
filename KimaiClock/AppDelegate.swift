@@ -6,6 +6,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var cancellables = Set<AnyCancellable>()
     private var statusItem: NSStatusItem!
     private var popover = NSPopover()
+    private var apiManager = ApiManager()
     private var iconModel = IconModel()
     private var timerModel = TimerModel()
 
@@ -15,9 +16,17 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         if let button = statusItem.button {
             button.image = iconModel.icon
             button.imagePosition = .imageLeading
-            button.sendAction(on: [.leftMouseUp, .rightMouseUp])
             button.font = NSFont.monospacedSystemFont(ofSize: 14, weight: .regular)
-            button.action = #selector(handleClick(_:))
+
+            let click = NSClickGestureRecognizer(target: self, action: #selector(handleLeftClick(_:)))
+            button.addGestureRecognizer(click)
+
+            let longPress = NSPressGestureRecognizer(target: self, action: #selector(handleLongPress(_:)))
+            longPress.minimumPressDuration = 0.5
+            button.addGestureRecognizer(longPress)
+
+            button.sendAction(on: [.rightMouseUp])
+            button.action = #selector(handleRightClick(_:))
             button.target = self
         }
 
@@ -55,30 +64,40 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         )
     }
 
-    @objc
-    func handleClick(_ sender: NSStatusBarButton) {
-        guard let event = NSApp.currentEvent else { return }
-
-        if event.type == .rightMouseUp {
-            if let isActive = timerModel.isActive {
-                popover.performClose(sender)
-                if isActive {
-                    timerModel.pause()
-                    iconModel.setSystemIcon("play.circle")
-                } else {
-                    timerModel.start()
-                    iconModel.setSystemIcon("pause.circle")
-                }
-                return
-            }
-        }
+    @objc func handleLeftClick(_ gesture: NSClickGestureRecognizer) {
+        guard gesture.state == .ended else { return }
 
         if popover.isShown {
-            popover.performClose(sender)
+            popover.performClose(nil)
+        } else if let button = statusItem.button {
+            popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
+        }
+    }
+
+    @objc func handleLongPress(_ gesture: NSPressGestureRecognizer) {
+        guard gesture.state == .began else { return }
+
+        if popover.isShown {
+            popover.performClose(nil)
+        }
+
+        if let baseUrl = apiManager.serverIP,
+           let url = URL(string: baseUrl) {
+            NSWorkspace.shared.open(url)
+        }
+    }
+
+    @objc func handleRightClick(_ sender: NSStatusBarButton) {
+        guard let isActive = timerModel.isActive else { return }
+
+        popover.performClose(sender)
+
+        if isActive {
+            timerModel.pause()
+            iconModel.setSystemIcon("play.circle")
         } else {
-            if let button = statusItem.button {
-                popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
-            }
+            timerModel.start()
+            iconModel.setSystemIcon("pause.circle")
         }
     }
 }

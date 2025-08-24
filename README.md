@@ -30,6 +30,14 @@ KimaiClock is a macOS menu bar application that integrates with [Kimai 2](https:
 
 ---
 
+### 🎛️ Menu Bar Button Actions
+
+- **Left click** → Open/close the view  
+- **Left long press** → Open your Kimai server page in the default browser  
+- **Right click** → Toggle play/pause for the active task
+
+---
+
 ## 🚀 Installation
 
 1. Go to the [Releases page](../../releases).  
