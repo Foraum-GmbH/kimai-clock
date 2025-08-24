@@ -41,9 +41,8 @@ KimaiClock is a macOS menu bar application that integrates with [Kimai 2](https:
 ---
 
 ## 🤝 Contributors
-
-<a href="https://github.com/undeadd"><img src="https://avatars.githubusercontent.com/u/8116188?v=4" width="50" height="50" style="border-radius:50%"/></a>
-<a href="https://github.com/fabian-rohr"><img src="https://avatars.githubusercontent.com/u/20979750?v=4" width="50" height="50" style="border-radius:50%"/></a>
+<a href="https://github.com/fabian-rohr"><img src="https://images.weserv.nl/?url=avatars.githubusercontent.com/u/20979750&w=300&h=300&fit=cover&mask=circle" width="50" height="50" style="border-radius:50%"/></a>
+<a href="https://github.com/undeadd"><img src="https://images.weserv.nl/?url=avatars.githubusercontent.com/u/8116188&w=300&h=300&fit=cover&mask=circle" width="50" height="50" style="border-radius:50%"/></a>
 
 Contributions, issues and feature requests are welcome!  
 Feel free to check the [issues page](../../issues).  
