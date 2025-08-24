@@ -1,5 +1,5 @@
-import SwiftUI
 internal import Combine
+import SwiftUI
 
 struct Activity: Identifiable, Codable, Equatable {
     let id: Int
@@ -33,10 +33,10 @@ class ApiManager: ObservableObject {
 
     private let session: URLSession = {
         let tempSession = URLSession.shared
-        //tempSession.configuration.urlCache = nil
-        //tempSession.configuration.httpCookieStorage = nil
-        //tempSession.configuration.requestCachePolicy = .reloadIgnoringLocalAndRemoteCacheData
-        //tempSession.configuration.httpCookieAcceptPolicy = .never
+        // tempSession.configuration.urlCache = nil
+        // tempSession.configuration.httpCookieStorage = nil
+        // tempSession.configuration.requestCachePolicy = .reloadIgnoringLocalAndRemoteCacheData
+        // tempSession.configuration.httpCookieAcceptPolicy = .never
         return tempSession
     }()
 
@@ -61,7 +61,7 @@ class ApiManager: ObservableObject {
             .map(\.data)
             .decode(type: ServerVersion.self, decoder: JSONDecoder())
             .map { version in
-                return version.versionId < 20000 ? "unsupported" : version.copyright
+                version.versionId < 20000 ? "unsupported" : version.copyright
             }
             .replaceError(with: "500")
             .receive(on: RunLoop.main)

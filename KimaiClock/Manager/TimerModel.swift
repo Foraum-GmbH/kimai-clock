@@ -1,17 +1,17 @@
-import SwiftUI
 internal import Combine
+import SwiftUI
 
 @MainActor
 class TimerModel: ObservableObject {
     @Published var timer: TimeInterval = 0
-    @Published var isActive: Bool? = nil
+    @Published var isActive: Bool?
     private var cancellable: Timer?
 
     public func start() {
         isActive = true
         guard cancellable == nil else { return }
         cancellable = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
-            Task { @MainActor in
+            Task { @MainActor [weak self] in
                 self?.timer += 1
             }
         }

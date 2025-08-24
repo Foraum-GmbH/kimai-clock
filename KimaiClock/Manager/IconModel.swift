@@ -1,5 +1,5 @@
-import SwiftUI
 internal import Combine
+import SwiftUI
 
 @MainActor
 final class IconModel: ObservableObject {

@@ -1,6 +1,6 @@
-import SwiftUI
 internal import Combine
 import LaunchAtLogin
+import SwiftUI
 
 struct PopupView: View {
     @AppStorage("serverIP") private var serverIP: String?
@@ -110,7 +110,7 @@ struct PopupView: View {
 
             Divider()
 
-            if (!recentActivitiesManager.activities.isEmpty) {
+            if !recentActivitiesManager.activities.isEmpty {
                 VStack(alignment: .leading, spacing: 8) {
                     Text(NSLocalizedString("recent_activities", comment: ""))
                         .font(.headline)

@@ -20,6 +20,7 @@
 		129FFA982E59213D007B73D3 /* Exceptions for "KimaiClock" folder in "KimaiClock" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
+				.swiftlint.yml,
 				Info.plist,
 			);
 			target = 129FFA732E58CD36007B73D3 /* KimaiClock */;
