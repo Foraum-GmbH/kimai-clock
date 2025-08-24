@@ -52,6 +52,22 @@
         }
       }
     },
+    "copyright_text" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "© 2025 Foraum GmbH"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "© 2025 Foraum GmbH"
+          }
+        }
+      }
+    },
     "feedback_button" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -85,6 +101,9 @@
           }
         }
       }
+    },
+    "Key" : {
+      "extractionState" : "manual"
     },
     "recent_activities" : {
       "extractionState" : "manual",

@@ -24,17 +24,21 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         let paragraph = NSMutableParagraphStyle()
         paragraph.alignment = .center
 
-        timerModel.$timer.sink { [weak self] _ in
-            let attrTitle = NSAttributedString(
-                string: self?.timerModel.formattedTimeMenuBar ?? "00:00",
-                attributes: [
-                    .paragraphStyle: paragraph,
-                    .baselineOffset: -1
-                ]
-            )
+        timerModel.$timer
+            .sink { [weak self] _ in
+                guard let self = self else { return }
 
-            self?.statusItem.button?.attributedTitle = attrTitle
-        }.store(in: &cancellables)
+                let attrTitle = NSAttributedString(
+                    string: self.timerModel.formattedTimeMenuBar,
+                    attributes: [
+                        .paragraphStyle: paragraph,
+                        .baselineOffset: -1
+                    ]
+                )
+
+                self.statusItem.button?.attributedTitle = attrTitle
+            }
+            .store(in: &cancellables)
 
         iconModel.$icon.sink { [weak self] newIcon in
             self?.statusItem.button?.image = newIcon

@@ -11,6 +11,7 @@ struct PopupView: View {
     let closePopup: () -> Void
 
     @State private var isPlaying = false
+    @State private var isHovering = false
     @State private var activeActivity: Activity?
 
     @State private var searchValue = ""
@@ -19,16 +20,6 @@ struct PopupView: View {
     @StateObject private var apiManager = ApiManager()
     @StateObject private var recentActivitiesManager = RecentActivitiesManager()
     @StateObject private var subscriptionManager = SubscriptionManager()
-
-    @MainActor
-    private func fetchVersion() {
-        apiManager.getVersion()
-            .receive(on: DispatchQueue.main) // ensures main thread
-            .sink { [weak apiManager] value in
-                apiManager?.serverVersion = value
-            }
-            .store(in: &subscriptionManager.cancellables)
-    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -180,7 +171,10 @@ struct PopupView: View {
                         )
                     )
                         .textFieldStyle(RoundedBorderTextFieldStyle())
-                        .onChange(of: serverIP) { _, _ in fetchVersion() }
+                        .onChange(of: serverIP) { _, _ in
+                            apiManager.getVersion()
+                                .store(in: &subscriptionManager.cancellables)
+                        }
 
                     Spacer(minLength: 8)
 
@@ -191,14 +185,18 @@ struct PopupView: View {
                         set: { apiToken = $0.isEmpty ? nil : $0 }
                     ))
                         .textFieldStyle(RoundedBorderTextFieldStyle())
-                        .onChange(of: apiToken) { _, _ in fetchVersion() }
+                        .onChange(of: apiToken) { _, _ in
+                            apiManager.getVersion()
+                                .store(in: &subscriptionManager.cancellables)
+                        }
 
                     Spacer(minLength: 8)
 
                     Text(NSLocalizedString("server_status", value: apiManager.serverVersion, comment: ""))
                         .font(.subheadline)
                         .onAppear {
-                            fetchVersion()
+                            apiManager.getVersion()
+                                .store(in: &subscriptionManager.cancellables)
                         }
                 }
             }
@@ -235,7 +233,10 @@ struct PopupView: View {
 
                     if let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String,
                        let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String {
-                        Text(String(format: NSLocalizedString("version_text", comment: ""), version, build))
+                        VStack(alignment: .leading, spacing: 12) {
+                            Text(String(format: NSLocalizedString("version_text", comment: ""), version, build))
+                            Text(NSLocalizedString("copyright_text", comment: ""))
+                        }
                     }
                 }
                 .padding(.horizontal, 4)
@@ -243,5 +244,34 @@ struct PopupView: View {
         }
         .padding(15)
         .frame(width: 320)
+        .overlay(
+            Button(action: {
+                apiManager.stopActivity(activity: activeActivity)
+                    .sink { _ in
+                        timerModel.stop()
+                        isPlaying = false
+                        activeActivity = nil
+                        iconModel.setSystemIcon("circle")
+                        ChimeManager.shared.play(.stop)
+                        NSApplication.shared.terminate(nil)
+                    }
+                    .store(in: &subscriptionManager.cancellables)
+            }) {
+                Image(systemName: "power")
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundColor(.white)
+                    .padding(6)
+                    .background(
+                        Circle()
+                            .fill(isHovering ? Color.red : Color.secondary.opacity(0.5))
+                    )
+            }
+            .buttonStyle(PlainButtonStyle())
+            .onHover { hovering in
+                isHovering = hovering
+            }
+            .padding(12),
+            alignment: .topTrailing
+        )
     }
 }

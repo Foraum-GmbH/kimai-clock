@@ -40,10 +40,14 @@ class ApiManager: ObservableObject {
         return tempSession
     }()
 
-    func getVersion() -> AnyPublisher<String, Never> {
+    func getVersion() -> AnyCancellable {
         guard let baseURL = serverIP,
               let url = URL(string: "\(baseURL)/api/version") else {
-            return Just("404").eraseToAnyPublisher()
+            return Just("404")
+                .eraseToAnyPublisher()
+                .sink { [weak self] value in
+                    self?.serverVersion = "Server: " + value
+                }
         }
 
         var request = URLRequest(url: url)
@@ -62,6 +66,9 @@ class ApiManager: ObservableObject {
             .replaceError(with: "500")
             .receive(on: RunLoop.main)
             .eraseToAnyPublisher()
+            .sink { [weak self] value in
+                self?.serverVersion = "Server: " + value
+            }
     }
 
     func bindSearch(to publisher: AnyPublisher<String, Never>) {

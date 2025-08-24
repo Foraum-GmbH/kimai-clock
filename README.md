@@ -6,7 +6,7 @@
 ![Notarized](https://img.shields.io/badge/Notarized-Yes-brightgreen?logo=apple&logoColor=white)
 
 <!-- Hero Image / App Overview -->
-![App Overview](https://placehold.co/1000x500?text=KimaiClock+Overview)
+![App Overview](https://github.com/Foraum-GmbH/kimai-clock/blob/main/dmg-assets/hero.jpeg?raw=true)
 
 ---
 
@@ -23,6 +23,7 @@ KimaiClock is a macOS menu bar application that integrates with [Kimai 2](https:
 
 - ⏱️ Start/stop Kimai Tasks from the menu bar  
 - 📊 Quick recent start Tasks
+- 📓 English and German Localized
 - 🔒 Secure, Apple-notarized build  
 - ⚡ Lightweight & fast
 - 🌙 Dark mode support
@@ -37,13 +38,12 @@ KimaiClock is a macOS menu bar application that integrates with [Kimai 2](https:
 4. Connect your Kimai Server inside the Settings
 5. Track your Tasks 🚀
 
-
 ---
 
 ## 🤝 Contributors
 
-<a href="https://github.com/undeadd"><img src="https://avatars.githubusercontent.com/u/000000?v=4" width="50" height="50" style="border-radius:50%"/></a>
-<a href="https://github.com/ven0m"><img src="https://avatars.githubusercontent.com/u/000001?v=4" width="50" height="50" style="border-radius:50%"/></a>
+<a href="https://github.com/undeadd"><img src="https://avatars.githubusercontent.com/u/8116188?v=4" width="50" height="50" style="border-radius:50%"/></a>
+<a href="https://github.com/fabian-rohr"><img src="https://avatars.githubusercontent.com/u/20979750?v=4" width="50" height="50" style="border-radius:50%"/></a>
 
 Contributions, issues and feature requests are welcome!  
 Feel free to check the [issues page](../../issues).  
