@@ -14,7 +14,7 @@
 
 KimaiClock is a macOS menu bar application that integrates with [Kimai 2](https://www.kimai.org/) to help you track your time directly from your desktop.
 
-[!WARNING]  
+> [!WARNING]  
 > This Version only works with Kimai 2 ( not the legacy Kimai 1 )
 
 ---
