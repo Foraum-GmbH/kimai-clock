@@ -21,6 +21,29 @@ struct PopupView: View {
     @StateObject private var recentActivitiesManager = RecentActivitiesManager()
     @StateObject private var subscriptionManager = SubscriptionManager()
 
+    private func normalizeServerURL(_ input: String) -> String {
+        var url = input.trimmingCharacters(in: .whitespacesAndNewlines)
+            .lowercased()
+
+        if !url.hasPrefix("http://") && !url.hasPrefix("https://") {
+            url = "https://" + url
+        }
+
+        url = url.replacingOccurrences(of: "^http://", with: "https://", options: .regularExpression)
+
+        guard let comps = URLComponents(string: url) else {
+            return url
+        }
+
+        var normalized = "https://" + (comps.host ?? "")
+
+        if let port = comps.port {
+            normalized += ":\(port)"
+        }
+
+        return normalized
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 10) {
@@ -41,8 +64,9 @@ struct PopupView: View {
                             .store(in: &subscriptionManager.cancellables)
                     } else {
                         apiManager.startActivity(activity: activeActivity)
-                            .sink { success in
-                                if success {
+                            .sink { timesheetId in
+                                if let id = timesheetId {
+                                    activeActivity?.timesheetId = id
                                     timerModel.start()
                                     isPlaying = true
                                     iconModel.setSystemIcon("pause.circle")
@@ -167,7 +191,10 @@ struct PopupView: View {
                         .font(.subheadline)
                     TextField(NSLocalizedString("server_url_placeholder", comment: ""), text: Binding(
                             get: { serverIP ?? "" },
-                            set: { serverIP = $0.isEmpty ? nil : $0 }
+                            set: { newValue in
+                                let cleaned = normalizeServerURL(newValue)
+                                serverIP = cleaned.isEmpty ? nil : cleaned
+                            }
                         )
                     )
                         .textFieldStyle(RoundedBorderTextFieldStyle())
@@ -182,7 +209,15 @@ struct PopupView: View {
                         .font(.subheadline)
                     SecureField(NSLocalizedString("user_api_token_placeholder", comment: ""), text: Binding(
                         get: { apiToken ?? "" },
-                        set: { apiToken = $0.isEmpty ? nil : $0 }
+                        set: { newValue in
+                            let trimmed = newValue.trimmingCharacters(in: .whitespacesAndNewlines)
+
+                            if trimmed.isEmpty {
+                                apiToken = nil
+                            } else {
+                                apiToken = trimmed
+                            }
+                        }
                     ))
                         .textFieldStyle(RoundedBorderTextFieldStyle())
                         .onChange(of: apiToken) { _, _ in

@@ -16,6 +16,8 @@ struct Activity: Identifiable, Codable, Equatable {
             return Color.kimami
         }
     }
+
+    var timesheetId: Int?
 }
 
 struct ServerVersion: Codable {
@@ -33,10 +35,10 @@ class ApiManager: ObservableObject {
 
     private let session: URLSession = {
         let tempSession = URLSession.shared
-        // tempSession.configuration.urlCache = nil
-        // tempSession.configuration.httpCookieStorage = nil
-        // tempSession.configuration.requestCachePolicy = .reloadIgnoringLocalAndRemoteCacheData
-        // tempSession.configuration.httpCookieAcceptPolicy = .never
+        tempSession.configuration.urlCache = nil
+        tempSession.configuration.httpCookieStorage = nil
+        tempSession.configuration.requestCachePolicy = .reloadIgnoringLocalAndRemoteCacheData
+        tempSession.configuration.httpCookieAcceptPolicy = .never
         return tempSession
     }()
 
@@ -55,7 +57,7 @@ class ApiManager: ObservableObject {
         request.addValue("Bearer \(apiToken ?? "")", forHTTPHeaderField: "Authorization")
         request.addValue("application/json", forHTTPHeaderField: "Content-Type")
         request.addValue("application/json", forHTTPHeaderField: "Accept")
-        request.addValue("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36", forHTTPHeaderField: "User-Agent")
+        request.addValue("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36 KimaiClock", forHTTPHeaderField: "User-Agent")
 
         return session.dataTaskPublisher(for: request)
             .map(\.data)
@@ -107,7 +109,7 @@ class ApiManager: ObservableObject {
         request.addValue("Bearer \(apiToken ?? "")", forHTTPHeaderField: "Authorization")
         request.addValue("application/json", forHTTPHeaderField: "Content-Type")
         request.addValue("application/json", forHTTPHeaderField: "Accept")
-        request.addValue("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36", forHTTPHeaderField: "User-Agent")
+        request.addValue("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36 KimaiClock", forHTTPHeaderField: "User-Agent")
 
         return session.dataTaskPublisher(for: request)
             .map(\.data)
@@ -120,11 +122,11 @@ class ApiManager: ObservableObject {
             .eraseToAnyPublisher()
     }
 
-    func startActivity(activity: Activity?) -> AnyPublisher<Bool, Never> {
+    func startActivity(activity: Activity?) -> AnyPublisher<Int?, Never> {
         guard let activity,
               let baseURL = serverIP,
               let url = URL(string: "\(baseURL)/api/timesheets") else {
-            return Just(false).eraseToAnyPublisher()
+            return Just(nil).eraseToAnyPublisher()
         }
 
         var request = URLRequest(url: url)
@@ -132,23 +134,28 @@ class ApiManager: ObservableObject {
         request.addValue("Bearer \(apiToken ?? "")", forHTTPHeaderField: "Authorization")
         request.addValue("application/json", forHTTPHeaderField: "Content-Type")
         request.addValue("application/json", forHTTPHeaderField: "Accept")
-        request.addValue("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36", forHTTPHeaderField: "User-Agent")
+        request.addValue("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36 KimaiClock", forHTTPHeaderField: "User-Agent")
 
         let body: [String: Any] = ["project": activity.project, "activity": activity.id]
         request.httpBody = try? JSONSerialization.data(withJSONObject: body)
 
         return session.dataTaskPublisher(for: request)
-            .map { $0.response as? HTTPURLResponse }
-            .map { $0?.statusCode == 200 }
-            .replaceError(with: false)
+            .tryMap { data, response -> Int? in
+                guard let httpResponse = response as? HTTPURLResponse,
+                      httpResponse.statusCode == 200 else { return nil }
+                let json = try JSONSerialization.jsonObject(with: data) as? [String: Any]
+                return json?["id"] as? Int
+            }
+            .replaceError(with: nil)
             .receive(on: RunLoop.main)
             .eraseToAnyPublisher()
     }
 
     func stopActivity(activity: Activity?) -> AnyPublisher<Bool, Never> {
         guard let activity,
+              let id = activity.timesheetId,
               let baseURL = serverIP,
-              let url = URL(string: "\(baseURL)/api/timesheets/\(activity.id)/stop") else {
+              let url = URL(string: "\(baseURL)/api/timesheets/\(id)/stop") else {
             return Just(false).eraseToAnyPublisher()
         }
 
@@ -157,7 +164,7 @@ class ApiManager: ObservableObject {
         request.addValue("Bearer \(apiToken ?? "")", forHTTPHeaderField: "Authorization")
         request.addValue("application/json", forHTTPHeaderField: "Content-Type")
         request.addValue("application/json", forHTTPHeaderField: "Accept")
-        request.addValue("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36", forHTTPHeaderField: "User-Agent")
+        request.addValue("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36 KimaiClock", forHTTPHeaderField: "User-Agent")
 
         return session.dataTaskPublisher(for: request)
             .map { $0.response as? HTTPURLResponse }
