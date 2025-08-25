@@ -143,7 +143,7 @@ jobs:
         create-dmg \
           --volname "$APP_NAME_ACTUAL" \
           --background "$GITHUB_WORKSPACE/assets/background.png" \
-          --volicon "$$GITHUB_WORKSPACE/assets/volicon.icns" \
+          --volicon "$GITHUB_WORKSPACE/assets/volicon.icns" \
           --window-size 600 400 \
           --icon-size 128 \
           --icon "$APP_NAME_ACTUAL.app" 150 150 \
