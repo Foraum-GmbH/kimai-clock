@@ -124,10 +124,6 @@ jobs:
 
     - name: Create DMG
       run: |
-        # Debug: Check what we have to work with
-        echo "=== Contents of export directory before DMG creation ==="
-        ls -la export/
-        
         # Find the actual .app file
         APP_FILE=$(find export/ -name "*.app" -type d | head -1)
         if [ -z "$APP_FILE" ]; then
