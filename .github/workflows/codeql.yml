@@ -39,11 +39,18 @@ jobs:
         languages: ${{ matrix.language }}
         build-mode: ${{ matrix.build-mode }}
 
-    - if: matrix.build-mode == 'manual'
+    - if: matrix.build-mode == 'manual' && matrix.language == 'swift'
       shell: bash
       run: |
-        echo "Building Swift project for CodeQL analysis..."
-        xcodebuild -project "$XCODE_PROJECT" -scheme "$SCHEME" -configuration Debug -sdk macosx
+        echo "Building Swift project for CodeQL analysis (without signing)..."
+        xcodebuild \
+          -project "$XCODE_PROJECT" \
+          -scheme "$SCHEME" \
+          -configuration Debug \
+          -sdk macosx \
+          CODE_SIGN_IDENTITY="" \
+          CODE_SIGNING_REQUIRED=NO \
+          CODE_SIGNING_ALLOWED=NO
       env:
         XCODE_PROJECT: "KimaiClock.xcodeproj"
         SCHEME: "KimaiClock"
