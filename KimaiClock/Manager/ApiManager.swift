@@ -132,7 +132,7 @@ class ApiManager: ObservableObject {
                         var result: [Activity] = []
 
                         for activity in activities {
-                            if let _ = activity.project, let _ = activity.parentTitle {
+                            if activity.project != nil, activity.parentTitle != nil {
                                 result.append(activity)
                             } else {
                                 let virtuals = projects.map { project in
@@ -229,7 +229,7 @@ class ApiManager: ObservableObject {
     }
 
     func stopActivity() -> AnyPublisher<Bool, Never> {
-        guard let _ = activeActivity,
+        guard activeActivity != nil,
               let id = activeTimesheetId else {
             return Just(true).eraseToAnyPublisher()
         }

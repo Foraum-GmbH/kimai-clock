@@ -64,7 +64,7 @@ struct PopupView: View {
                     } else {
                         apiManager.startActivity()
                             .sink { id in
-                                if let _ = id {
+                                if id != nil {
                                     timerModel.start()
                                     isPlaying = true
                                     iconModel.setSystemIcon("pause.circle")
