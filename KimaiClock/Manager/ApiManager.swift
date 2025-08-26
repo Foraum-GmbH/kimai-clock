@@ -4,10 +4,14 @@ import SwiftUI
 struct Activity: Identifiable, Codable, Equatable {
     let id: Int
     let name: String
-    let parentTitle: String
-    let project: Int
 
+    // Optional Properties
+
+    let parentTitle: String?
+    let project: Int?
     let color: String?
+
+    // Computed Properties
 
     var activityColor: Color {
         if let hex = color, let color = Color(hex: hex) {
@@ -17,7 +21,20 @@ struct Activity: Identifiable, Codable, Equatable {
         }
     }
 
+    var uniqueId: String {
+        if let project = project {
+            return "\(id)-\(project)"
+        } else {
+            return "\(id)-0"
+        }
+    }
+
     var timesheetId: Int?
+}
+
+struct Project: Decodable {
+    let id: Int
+    let name: String
 }
 
 struct ServerVersion: Codable {
@@ -32,6 +49,8 @@ class ApiManager: ObservableObject {
 
     @Published var searchResults: [Activity] = []
     @Published var serverVersion: String = "..."
+    @Published var activeActivity: Activity?
+    private var activeTimesheetId: Int?
 
     private let session: URLSession = {
         let tempSession = URLSession.shared
@@ -81,10 +100,60 @@ class ApiManager: ObservableObject {
                 guard let self = self, !query.isEmpty else {
                     return Just([]).eraseToAnyPublisher()
                 }
-                return self.searchActivitys(query: query)
+                return self.searchActivitiesWithVirtuals(query: query)
             }
             .receive(on: RunLoop.main)
             .assign(to: &$searchResults)
+    }
+
+    func searchActivitiesWithVirtuals(query: String, maxSearchLength: Int = 6) -> AnyPublisher<[Activity], Never> {
+        return searchActivitys(query: query, maxSearchLength)
+            .flatMap { activities -> AnyPublisher<[Activity], Never> in
+                let needsVirtuals = activities.contains { $0.project == nil || $0.parentTitle == nil }
+
+                guard needsVirtuals else {
+                    return Just(activities).eraseToAnyPublisher()
+                }
+
+                guard let baseURL = self.serverIP,
+                      let url = URL(string: "\(baseURL)/api/projects") else {
+                    return Just(activities).eraseToAnyPublisher()
+                }
+
+                var request = URLRequest(url: url)
+                request.httpMethod = "GET"
+                request.addValue("Bearer \(self.apiToken ?? "")", forHTTPHeaderField: "Authorization")
+                request.addValue("application/json", forHTTPHeaderField: "Accept")
+
+                return self.session.dataTaskPublisher(for: request)
+                    .map(\.data)
+                    .decode(type: [Project].self, decoder: JSONDecoder())
+                    .map { projects -> [Activity] in
+                        var result: [Activity] = []
+
+                        for activity in activities {
+                            if let _ = activity.project, let _ = activity.parentTitle {
+                                result.append(activity)
+                            } else {
+                                let virtuals = projects.map { project in
+                                    Activity(
+                                        id: activity.id,
+                                        name: activity.name,
+                                        parentTitle: project.name,
+                                        project: project.id,
+                                        color: activity.color
+                                    )
+                                }
+                                result.append(contentsOf: virtuals)
+                            }
+                        }
+
+                        return result
+                    }
+                    .replaceError(with: activities)
+                    .eraseToAnyPublisher()
+            }
+            .eraseToAnyPublisher()
     }
 
     func searchActivitys(query: String, _ maxSearchLength: Int = 6) -> AnyPublisher<[Activity], Never> {
@@ -122,8 +191,8 @@ class ApiManager: ObservableObject {
             .eraseToAnyPublisher()
     }
 
-    func startActivity(activity: Activity?) -> AnyPublisher<Int?, Never> {
-        guard let activity,
+    func startActivity() -> AnyPublisher<Int?, Never> {
+        guard let activeActivity,
               let baseURL = serverIP,
               let url = URL(string: "\(baseURL)/api/timesheets") else {
             return Just(nil).eraseToAnyPublisher()
@@ -134,27 +203,38 @@ class ApiManager: ObservableObject {
         request.addValue("Bearer \(apiToken ?? "")", forHTTPHeaderField: "Authorization")
         request.addValue("application/json", forHTTPHeaderField: "Content-Type")
         request.addValue("application/json", forHTTPHeaderField: "Accept")
-        request.addValue("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36 KimaiClock", forHTTPHeaderField: "User-Agent")
+        request.addValue("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36 KimaiClock",
+                         forHTTPHeaderField: "User-Agent")
 
-        let body: [String: Any] = ["project": activity.project, "activity": activity.id]
+        let body: [String: Any?] = [
+            "project": activeActivity.project,
+            "activity": activeActivity.id
+        ]
         request.httpBody = try? JSONSerialization.data(withJSONObject: body)
 
         return session.dataTaskPublisher(for: request)
-            .tryMap { data, response -> Int? in
+            .tryMap { [weak self] data, response -> Int? in
                 guard let httpResponse = response as? HTTPURLResponse,
                       httpResponse.statusCode == 200 else { return nil }
                 let json = try JSONSerialization.jsonObject(with: data) as? [String: Any]
-                return json?["id"] as? Int
+                let id = json?["id"] as? Int
+                if let id = id {
+                    self?.activeTimesheetId = id
+                }
+                return id
             }
             .replaceError(with: nil)
             .receive(on: RunLoop.main)
             .eraseToAnyPublisher()
     }
 
-    func stopActivity(activity: Activity?) -> AnyPublisher<Bool, Never> {
-        guard let activity,
-              let id = activity.timesheetId,
-              let baseURL = serverIP,
+    func stopActivity() -> AnyPublisher<Bool, Never> {
+        guard let _ = activeActivity,
+              let id = activeTimesheetId else {
+            return Just(true).eraseToAnyPublisher()
+        }
+
+        guard let baseURL = serverIP,
               let url = URL(string: "\(baseURL)/api/timesheets/\(id)/stop") else {
             return Just(false).eraseToAnyPublisher()
         }
@@ -169,6 +249,10 @@ class ApiManager: ObservableObject {
         return session.dataTaskPublisher(for: request)
             .map { $0.response as? HTTPURLResponse }
             .map { $0?.statusCode == 200 }
+            .map {
+                self.activeTimesheetId = nil
+                return $0
+            }
             .replaceError(with: false)
             .receive(on: RunLoop.main)
             .eraseToAnyPublisher()

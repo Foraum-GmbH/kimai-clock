@@ -11,6 +11,16 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var timerModel = TimerModel()
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        NSWorkspace.shared.notificationCenter.addObserver(
+                    forName: NSWorkspace.willPowerOffNotification,
+                    object: nil,
+                    queue: .main
+        ) { [weak self] _ in
+            DispatchQueue.main.async {
+                self?.stopKimaiTask()
+            }
+        }
+
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
 
         if let button = statusItem.button {
@@ -98,6 +108,23 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         } else {
             timerModel.start()
             iconModel.setSystemIcon("pause.circle")
+        }
+    }
+
+    func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
+        stopKimaiTask {
+            NSApplication.shared.reply(toApplicationShouldTerminate: true)
+        }
+        return .terminateLater
+    }
+
+    private func stopKimaiTask(_ completion: (() -> Void)? = nil) {
+        apiManager.stopActivity()
+            .sink { _ in completion?() }
+            .store(in: &cancellables)
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
+            completion?()
         }
     }
 }

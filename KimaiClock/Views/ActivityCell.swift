@@ -18,7 +18,7 @@ struct ActivityCell: View {
                 Text(activity.name)
                     .font(.headline)
                     .foregroundColor(activity.activityColor)
-                Text(" / " + activity.parentTitle)
+                Text(" / " + (activity.parentTitle ?? "-"))
                     .font(.subheadline)
                     .foregroundColor(.secondary)
                 Spacer()

@@ -14,7 +14,7 @@ class RecentActivitiesManager: ObservableObject {
 
     func add(_ activity: Activity?) {
         guard let activity else { return }
-        activities.removeAll { $0.id == activity.id }
+        activities.removeAll { $0.uniqueId == activity.uniqueId }
         activities.insert(activity, at: 0)
         if activities.count > maxLength {
             activities.removeLast()
@@ -24,7 +24,7 @@ class RecentActivitiesManager: ObservableObject {
 
     func clear(_ activity: Activity?) {
         guard let activity else { return }
-        activities.removeAll { $0.id == activity.id }
+        activities.removeAll { $0.uniqueId == activity.uniqueId }
         save()
     }
 

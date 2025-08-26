@@ -12,7 +12,6 @@ struct PopupView: View {
 
     @State private var isPlaying = false
     @State private var isHovering = false
-    @State private var activeActivity: Activity?
 
     @State private var searchValue = ""
     private let searchSubject = PassthroughSubject<String, Never>()
@@ -49,7 +48,7 @@ struct PopupView: View {
             HStack(spacing: 10) {
                 Button(action: {
                     if isPlaying {
-                        apiManager.stopActivity(activity: activeActivity)
+                        apiManager.stopActivity()
                             .sink { success in
                                 if success {
                                     timerModel.pause()
@@ -63,14 +62,13 @@ struct PopupView: View {
                             }
                             .store(in: &subscriptionManager.cancellables)
                     } else {
-                        apiManager.startActivity(activity: activeActivity)
-                            .sink { timesheetId in
-                                if let id = timesheetId {
-                                    activeActivity?.timesheetId = id
+                        apiManager.startActivity()
+                            .sink { id in
+                                if let _ = id {
                                     timerModel.start()
                                     isPlaying = true
                                     iconModel.setSystemIcon("pause.circle")
-                                    recentActivitiesManager.add(activeActivity)
+                                    recentActivitiesManager.add(apiManager.activeActivity)
                                     ChimeManager.shared.play(.start)
                                 } else {
                                     ChimeManager.shared.play(.error)
@@ -83,19 +81,20 @@ struct PopupView: View {
                     Image(systemName: isPlaying ? "pause.fill" : "play.fill")
                         .frame(width: 24, height: 24)
                 }
-                .disabled(activeActivity == nil)
+                .disabled(apiManager.activeActivity == nil)
                 .buttonStyle(AdaptiveButtonStyle(
                     isProminent: !isPlaying,
-                    isDisabled: activeActivity == nil
+                    isDisabled: apiManager.activeActivity == nil
                 ))
 
                 Button(action: {
-                    apiManager.stopActivity(activity: activeActivity)
+                    apiManager.stopActivity()
                         .sink { success in
                             if success {
+                                apiManager.activeActivity = nil
+
                                 timerModel.stop()
                                 isPlaying = false
-                                activeActivity = nil
                                 iconModel.setSystemIcon("circle")
                                 ChimeManager.shared.play(.stop)
                             } else {
@@ -123,10 +122,10 @@ struct PopupView: View {
             }
 
             HStack(alignment: .center, spacing: 0) {
-                Text(activeActivity?.name ?? " ")
+                Text(apiManager.activeActivity?.name ?? " ")
                     .font(.headline)
-                    .foregroundColor(activeActivity?.activityColor ?? Color.kimami)
-                Text(activeActivity != nil ? " / " + activeActivity!.parentTitle : NSLocalizedString("select_activity", comment: ""))
+                    .foregroundColor(apiManager.activeActivity?.activityColor ?? Color.kimami)
+                Text(apiManager.activeActivity != nil ? " / " + (apiManager.activeActivity!.parentTitle ?? "-") : NSLocalizedString("select_activity", comment: ""))
                     .font(.subheadline)
                     .foregroundColor(.secondary)
                 Spacer()
@@ -139,13 +138,13 @@ struct PopupView: View {
                     Text(NSLocalizedString("recent_activities", comment: ""))
                         .font(.headline)
 
-                    ForEach(recentActivitiesManager.activities) { activity in
+                    ForEach(recentActivitiesManager.activities, id: \.uniqueId) { activity in
                         ActivityCell(
                             activity: activity,
-                            isActive: activeActivity?.id == activity.id,
+                            isActive: apiManager.activeActivity?.uniqueId == activity.uniqueId,
                             canBeRemoved: true,
                             setActive: {
-                                activeActivity = activeActivity?.id == activity.id ? nil : activity
+                                apiManager.activeActivity = apiManager.activeActivity?.uniqueId == activity.uniqueId ? nil : activity
                             },
                             remove: {
                                 recentActivitiesManager.clear(activity)
@@ -165,13 +164,13 @@ struct PopupView: View {
                     apiManager.bindSearch(to: searchSubject.eraseToAnyPublisher())
                 }
 
-            ForEach(apiManager.searchResults) { activity in
+            ForEach(apiManager.searchResults, id: \.uniqueId) { activity in
                 ActivityCell(
                     activity: activity,
-                    isActive: activeActivity?.id == activity.id,
+                    isActive: apiManager.activeActivity?.uniqueId == activity.uniqueId,
                     canBeRemoved: false,
                     setActive: {
-                        activeActivity = activeActivity?.id == activity.id ? nil : activity
+                        apiManager.activeActivity = apiManager.activeActivity?.uniqueId == activity.uniqueId ? nil : activity
                     },
                     remove: nil
                 )
@@ -242,7 +241,7 @@ struct PopupView: View {
 
                     HStack(alignment: .center, spacing: 10) {
                         Button(action: {
-                            if let url = URL(string: "https://github.com/Foraum-GmbH") {
+                            if let url = URL(string: "https://github.com/Foraum-GmbH/kimai-clock") {
                                 NSWorkspace.shared.open(url)
                             }
                         }) {
@@ -250,7 +249,7 @@ struct PopupView: View {
                         }
 
                         Button(action: {
-                            if let url = URL(string: "https://www.buymeacoffee.com/foraum") {
+                            if let url = URL(string: "https://paypal.me/undeaDD") {
                                 NSWorkspace.shared.open(url)
                             }
                         }) {
@@ -281,11 +280,10 @@ struct PopupView: View {
         .frame(width: 320)
         .overlay(
             Button(action: {
-                apiManager.stopActivity(activity: activeActivity)
+                apiManager.stopActivity()
                     .sink { _ in
                         timerModel.stop()
                         isPlaying = false
-                        activeActivity = nil
                         iconModel.setSystemIcon("circle")
                         ChimeManager.shared.play(.stop)
                         NSApplication.shared.terminate(nil)
