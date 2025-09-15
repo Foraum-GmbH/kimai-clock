@@ -45,7 +45,7 @@ struct PopupView: View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 10) {
                 Button(action: {
-                    if (timerModel.isActive ?? false) {
+                    if timerModel.isActive ?? false {
                         apiManager.stopActivity()
                             .sink { success in
                                 if success {

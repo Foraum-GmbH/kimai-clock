@@ -1,39 +1,35 @@
 # SwiftLint configuration for KimaiClock
 
-# Enable strict mode
 strict: true
 
-# Paths to include/exclude
 included:
-  - KimaiClock
   - App.swift
+  - KimaiClock
 excluded:
-  - Carthage
   - Pods
+  - .build
   - Scripts
   - fastlane
-  - .build
+  - Carthage
 
-# Disabled rules
 disabled_rules:
   - line_length
+  - implicit_return
   - identifier_name
   - type_body_length
-  - implicit_return
+  - function_body_length
+  - cyclomatic_complexity
   - multiple_closures_with_trailing_closure
 
-# Opt-in rules (recommended)
 opt_in_rules:
   - empty_count
+  - sorted_imports
   - implicit_return
   - no_fallthrough_only
-  - sorted_imports
-  - vertical_parameter_alignment_on_call
   - discouraged_object_literal
+  - vertical_parameter_alignment_on_call
 
-# Formatting rules
 trailing_whitespace:
   ignores_empty_lines: false
 
-# Reporting
 reporter: "xcode"

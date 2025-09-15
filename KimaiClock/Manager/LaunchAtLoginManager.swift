@@ -1,6 +1,6 @@
-import SwiftUI
-import ServiceManagement
 internal import Combine
+import ServiceManagement
+import SwiftUI
 
 public enum LaunchAtLogin {
     fileprivate static let observable = Observable()
