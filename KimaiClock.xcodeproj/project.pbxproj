@@ -6,10 +6,6 @@
 	objectVersion = 77;
 	objects = {
 
-/* Begin PBXBuildFile section */
-		12B7E9AE2E59A17B0035700A /* LaunchAtLogin in Frameworks */ = {isa = PBXBuildFile; productRef = 12B7E9AD2E59A17B0035700A /* LaunchAtLogin */; };
-/* End PBXBuildFile section */
-
 /* Begin PBXFileReference section */
 		129FFA742E58CD36007B73D3 /* KimaiClock.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = KimaiClock.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		12B7E9F72E59DA090035700A /* LICENSE.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = LICENSE.md; sourceTree = "<group>"; };
@@ -43,7 +39,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				12B7E9AE2E59A17B0035700A /* LaunchAtLogin in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -88,7 +83,6 @@
 			);
 			name = KimaiClock;
 			packageProductDependencies = (
-				12B7E9AD2E59A17B0035700A /* LaunchAtLogin */,
 			);
 			productName = KimaiMenu;
 			productReference = 129FFA742E58CD36007B73D3 /* KimaiClock.app */;
@@ -120,7 +114,6 @@
 			mainGroup = 129FFA6B2E58CD36007B73D3;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				12B7E9AC2E59A17B0035700A /* XCRemoteSwiftPackageReference "LaunchAtLogin-Modern" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 129FFA752E58CD36007B73D3 /* Products */;
@@ -281,11 +274,12 @@
 				ARCHS = "$(ARCHS_STANDARD)";
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = KimaiClock/KimaiClock.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 5;
+				CURRENT_PROJECT_VERSION = 6;
 				DEVELOPMENT_TEAM = AXLC3PQNC8;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -312,7 +306,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 15.0;
-				MARKETING_VERSION = 1.0.0;
+				MARKETING_VERSION = 1.0.1;
 				PRODUCT_BUNDLE_IDENTIFIER = de.foraum.KimaiClock;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -332,11 +326,12 @@
 				ARCHS = "$(ARCHS_STANDARD)";
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = KimaiClock/KimaiClock.entitlements;
 				CODE_SIGN_IDENTITY = "Developer ID Application: Lars Drees (AXLC3PQNC8)";
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Developer ID Application: Lars Drees (AXLC3PQNC8)";
 				CODE_SIGN_STYLE = Manual;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 5;
+				CURRENT_PROJECT_VERSION = 6;
 				DEVELOPMENT_TEAM = AXLC3PQNC8;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -363,7 +358,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 15.0;
-				MARKETING_VERSION = 1.0.0;
+				MARKETING_VERSION = 1.0.1;
 				ONLY_ACTIVE_ARCH = YES;
 				PRODUCT_BUNDLE_IDENTIFIER = de.foraum.KimaiClock;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -400,25 +395,6 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
-
-/* Begin XCRemoteSwiftPackageReference section */
-		12B7E9AC2E59A17B0035700A /* XCRemoteSwiftPackageReference "LaunchAtLogin-Modern" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/sindresorhus/LaunchAtLogin-Modern";
-			requirement = {
-				branch = main;
-				kind = branch;
-			};
-		};
-/* End XCRemoteSwiftPackageReference section */
-
-/* Begin XCSwiftPackageProductDependency section */
-		12B7E9AD2E59A17B0035700A /* LaunchAtLogin */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 12B7E9AC2E59A17B0035700A /* XCRemoteSwiftPackageReference "LaunchAtLogin-Modern" */;
-			productName = LaunchAtLogin;
-		};
-/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 129FFA6C2E58CD36007B73D3 /* Project object */;
 }

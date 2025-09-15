@@ -6,9 +6,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var cancellables = Set<AnyCancellable>()
     private var statusItem: NSStatusItem!
     private var popover = NSPopover()
+    private var alreadyDisplaysAlert = false
+
     private var apiManager = ApiManager()
     private var iconModel = IconModel()
     private var timerModel = TimerModel()
+    private var launchManager: AppLaunchManager!
+    private var userIdleManager: UserIdleManager!
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSWorkspace.shared.notificationCenter.addObserver(
@@ -72,6 +76,101 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             .environmentObject(iconModel)
             .environmentObject(timerModel)
         )
+
+        launchManager = AppLaunchManager(
+            watch: [
+                "com.microsoft.VSCode",
+                "com.jetbrains.PhpStorm",
+                "com.apple.dt.Xcode"
+            ]
+        ) { [weak self] bundleID in
+            guard
+                let self,
+                UserDefaults.standard.bool(forKey: "appLaunchManager.dontShowAgain") == true,
+                self.timerModel.isActive == false,
+                alreadyDisplaysAlert == true
+            else { return }
+
+            alreadyDisplaysAlert = true
+
+            let alert = NSAlert()
+            alert.messageText = "Detected launch of \(bundleID)"
+            alert.informativeText = "You opened a development app but have no active Kimai timer running."
+
+            if let app = NSRunningApplication.runningApplications(withBundleIdentifier: bundleID).first {
+                if let appName = app.localizedName {
+                    alert.messageText = "Launched \(appName)"
+                }
+                if let appIcon = app.icon {
+                    alert.icon = appIcon
+                }
+            }
+
+            alert.addButton(withTitle: "Start Tracking")
+            alert.addButton(withTitle: "Cancel")
+            let dontShowButton = alert.addButton(withTitle: "Don’t Show Again")
+            dontShowButton.hasDestructiveAction = true
+
+            let response = alert.runModal()
+            alreadyDisplaysAlert = false
+
+            switch response {
+            case .alertFirstButtonReturn:
+                if let button = statusItem.button {
+                    popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
+                    ChimeManager.shared.play(.start)
+                }
+            case .alertThirdButtonReturn:
+                UserDefaults.standard.set(true, forKey: "appLaunchManager.dontShowAgain")
+            default:
+                break
+            }
+        }
+
+        userIdleManager = UserIdleManager(threshold: 60 * 30) { [weak self] in
+            guard
+                let self,
+                UserDefaults.standard.bool(forKey: "userIdleManager.dontShowAgain") == true,
+                self.timerModel.isActive == true,
+                alreadyDisplaysAlert == true
+            else { return }
+
+            alreadyDisplaysAlert = true
+
+            // pause timer for now
+            timerModel.pause()
+            iconModel.setSystemIcon("play.circle")
+            ChimeManager.shared.play(.pause)
+
+            let alert = NSAlert()
+            alert.messageText = "You’ve been idle"
+            alert.informativeText = "You have a timer running but haven’t interacted with your Mac for 30 minutes."
+
+            alert.icon = NSImage(systemSymbolName: "moon.zzz", accessibilityDescription: nil)
+
+            alert.addButton(withTitle: "Stop Tracking")
+            alert.addButton(withTitle: "Cancel")
+            let dontShowButton = alert.addButton(withTitle: "Don’t Show Again")
+            dontShowButton.hasDestructiveAction = true
+
+            let response = alert.runModal()
+            alreadyDisplaysAlert = false
+
+            switch response {
+            case .alertFirstButtonReturn:
+                timerModel.stop()
+                iconModel.setSystemIcon("circle")
+                ChimeManager.shared.play(.stop)
+            case .alertSecondButtonReturn:
+                // resume paused timer
+                timerModel.start()
+                iconModel.setSystemIcon("pause.circle")
+            case .alertThirdButtonReturn:
+                UserDefaults.standard.set(true, forKey: "userIdleManager.dontShowAgain")
+            default:
+                break
+            }
+        }
     }
 
     @objc func handleLeftClick(_ gesture: NSClickGestureRecognizer) {

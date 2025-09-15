@@ -1,5 +1,4 @@
 internal import Combine
-import LaunchAtLogin
 import SwiftUI
 
 struct PopupView: View {
@@ -10,7 +9,6 @@ struct PopupView: View {
     @EnvironmentObject var timerModel: TimerModel
     let closePopup: () -> Void
 
-    @State private var isPlaying = false
     @State private var isHovering = false
 
     @State private var searchValue = ""
@@ -47,17 +45,17 @@ struct PopupView: View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 10) {
                 Button(action: {
-                    if isPlaying {
+                    if (timerModel.isActive ?? false) {
                         apiManager.stopActivity()
                             .sink { success in
                                 if success {
                                     timerModel.pause()
-                                    isPlaying = false
+                                    timerModel.isActive = false
                                     iconModel.setSystemIcon("play.circle")
                                     ChimeManager.shared.play(.pause)
                                 } else {
                                     ChimeManager.shared.play(.error)
-                                    isPlaying = true
+                                    timerModel.isActive = true
                                 }
                             }
                             .store(in: &subscriptionManager.cancellables)
@@ -66,24 +64,24 @@ struct PopupView: View {
                             .sink { id in
                                 if id != nil {
                                     timerModel.start()
-                                    isPlaying = true
+                                    timerModel.isActive = true
                                     iconModel.setSystemIcon("pause.circle")
                                     recentActivitiesManager.add(apiManager.activeActivity)
                                     ChimeManager.shared.play(.start)
                                 } else {
                                     ChimeManager.shared.play(.error)
-                                    isPlaying = false
+                                    timerModel.isActive = false
                                 }
                             }
                             .store(in: &subscriptionManager.cancellables)
                     }
                 }) {
-                    Image(systemName: isPlaying ? "pause.fill" : "play.fill")
+                    Image(systemName: (timerModel.isActive ?? false) ? "pause.fill" : "play.fill")
                         .frame(width: 24, height: 24)
                 }
                 .disabled(apiManager.activeActivity == nil)
                 .buttonStyle(AdaptiveButtonStyle(
-                    isProminent: !isPlaying,
+                    isProminent: !(timerModel.isActive ?? false),
                     isDisabled: apiManager.activeActivity == nil
                 ))
 
@@ -94,12 +92,12 @@ struct PopupView: View {
                                 apiManager.activeActivity = nil
 
                                 timerModel.stop()
-                                isPlaying = false
+                                timerModel.isActive = false
                                 iconModel.setSystemIcon("circle")
                                 ChimeManager.shared.play(.stop)
                             } else {
                                 ChimeManager.shared.play(.error)
-                                isPlaying = true
+                                timerModel.isActive = true
                             }
                         }
                         .store(in: &subscriptionManager.cancellables)
@@ -283,7 +281,7 @@ struct PopupView: View {
                 apiManager.stopActivity()
                     .sink { _ in
                         timerModel.stop()
-                        isPlaying = false
+                        timerModel.isActive = false
                         iconModel.setSystemIcon("circle")
                         ChimeManager.shared.play(.stop)
                         NSApplication.shared.terminate(nil)

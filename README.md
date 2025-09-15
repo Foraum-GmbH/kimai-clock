@@ -8,19 +8,21 @@
 
 ## 📖 About
 
-KimaiClock is a macOS menu bar application that integrates with [Kimai 2](https://www.kimai.org/) to help you track your time directly from your desktop.
+KimaiClock is a macOS menu bar application that integrates with [Kimai](https://www.kimai.org/) to help you track your time directly from your desktop.
 
 > [!WARNING]  
 > This Version only works with Kimai 2 ( not the legacy Kimai 1 )
 
 ## ✨ Features
 
-- ⏱️ Start/stop Kimai Tasks from the menu bar  
-- 📊 Quick recent start Tasks
-- 📓 English and German Localized
+- ⏱️ Start & stop timesheets from the menu bar  
+- 📊 View and resume recent tasks  
+- 🔔 Idle detection reminders  
+- 🔔 App launch reminders (VS Code, PhpStorm, Xcode, …)  
+- 📓 English & German localization  
 - 🔒 Secure, Apple-notarized build  
-- ⚡ Lightweight & fast
-- 🌙 Dark mode support
+- ⚡ Lightweight & fast  
+- 🌙 Dark mode support  
 - 📨 Actively maintained
 
 ## 🎛️ Menu Bar Button Actions
@@ -35,7 +37,7 @@ KimaiClock is a macOS menu bar application that integrates with [Kimai 2](https:
 2. Download the latest `.dmg` file.  
 3. Open it and drag **KimaiClock.app** to your `Applications` folder.  
 4. Connect your Kimai Server inside the Settings
-5. Track your Tasks 🚀
+5. Start tracking time right away 🚀
 
 > [!TIP]  
 > KimaiClock will soon be available via Homebrew! You’ll be able to install it with `brew install --cask kimai-clock`.
