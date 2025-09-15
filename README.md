@@ -21,7 +21,8 @@ KimaiClock is a macOS menu bar application that integrates with [Kimai](https://
 - 🔔 App launch reminders (VS Code, PhpStorm, Xcode, …)  
 - 📓 English & German localization  
 - 🔒 Secure, Apple-notarized build  
-- ⚡ Lightweight & fast  
+- ⚡ Lightweight & fast
+- 📦 No third party dependency
 - 🌙 Dark mode support  
 - 📨 Actively maintained
 
