@@ -40,7 +40,33 @@ KimaiClock is a macOS menu bar application that integrates with [Kimai](https://
 5. Start tracking time right away 🚀
 
 > [!TIP]  
-> KimaiClock will soon be available via Homebrew! You’ll be able to install it with `brew install --cask kimai-clock`.
+> KimaiClock can also be installed via our own Homebrew tap right now:
+>
+> ```bash
+> # add company tap
+> brew tap foraum-gmbh/foraum https://github.com/Foraum-GmbH/homebrew-foraum
+>
+> # install cask from company tap
+> brew install --cask foraum-gmbh/foraum/kimai-clock
+> ```
+>
+> To uninstall KimaiClock and remove the company tap:
+>
+> ```bash
+> # uninstall the app
+> brew uninstall --cask foraum-gmbh/foraum/kimai-clock
+>
+> # remove the company tap
+> brew untap foraum-gmbh/foraum
+> ```
+>
+> 
+> Once KimaiClock becomes more popular, we plan to submit it to the official Homebrew Cask repository.
+>
+> **Minimum requirements for official Homebrew Cask inclusion:**  
+> - At least 30 forks  
+> - At least 30 watchers  
+> - At least 75 stars on GitHub
 
 ## 🤝 Contributors
 <a href="https://github.com/fabian-rohr"><img src="https://images.weserv.nl/?url=avatars.githubusercontent.com/u/20979750&w=300&h=300&fit=cover&mask=circle" width="50" height="50" style="border-radius:50%"/></a>
