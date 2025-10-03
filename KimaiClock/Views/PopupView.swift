@@ -7,9 +7,14 @@ struct PopupView: View {
 
     @EnvironmentObject var iconModel: IconModel
     @EnvironmentObject var timerModel: TimerModel
+    @EnvironmentObject var updateManager: UpdateManager
     let closePopup: () -> Void
 
     @State private var isHovering = false
+    @State private var pulse = false
+
+    @AppStorage("syncTimer") private var syncTimerOption: String = "sync_on_open"
+    let options = ["sync_on_open", "sync_every_5_min", "sync_every_15_min", "sync_every_30_min"]
 
     @State private var searchValue = ""
     private let searchSubject = PassthroughSubject<String, Never>()
@@ -180,9 +185,38 @@ struct PopupView: View {
                 VStack(alignment: .leading, spacing: 8) {
                     Spacer(minLength: 8)
 
+                    Text(NSLocalizedString("sync_server_timer", comment: ""))
+                        .font(.subheadline)
+                    Picker("", selection: $syncTimerOption) {
+                        ForEach(options, id: \.self) { option in
+                            Text(NSLocalizedString(option, comment: "")).tag(option)
+                        }
+                    }
+                        .labelsHidden()
+                        .padding(.leading, 0)
+                        .pickerStyle(.menu)
+                        .onChange(of: syncTimerOption, { _, newValue in
+                            apiManager.setupSyncTimer()
+                        })
+
+                    Spacer(minLength: 4)
+
                     LaunchAtLogin.Toggle(NSLocalizedString("autostart", comment: ""))
 
-                    Spacer(minLength: 8)
+                    Spacer(minLength: 4)
+
+                    Button {
+                        UserDefaults.standard.set(false, forKey: "appLaunchManager.dontShowAgain")
+                        UserDefaults.standard.set(false, forKey: "userIdleManager.dontShowAgain")
+                    } label: {
+                        Label(NSLocalizedString("reset_alerts", comment: ""), systemImage: "arrow.counterclockwise")
+                    }
+
+                    Spacer(minLength: 2)
+
+                    Divider()
+
+                    Spacer(minLength: 2)
 
                     Text(NSLocalizedString("server_url_label", comment: ""))
                         .font(.subheadline)
@@ -200,7 +234,7 @@ struct PopupView: View {
                                 .store(in: &subscriptionManager.cancellables)
                         }
 
-                    Spacer(minLength: 8)
+                    Spacer(minLength: 4)
 
                     Text(NSLocalizedString("user_api_token_label", comment: ""))
                         .font(.subheadline)
@@ -222,10 +256,11 @@ struct PopupView: View {
                                 .store(in: &subscriptionManager.cancellables)
                         }
 
-                    Spacer(minLength: 8)
+                    Spacer(minLength: 4)
 
                     Text(NSLocalizedString("server_status", value: apiManager.serverVersion, comment: ""))
                         .font(.subheadline)
+                        .foregroundStyle(.secondary)
                         .onAppear {
                             apiManager.getVersion()
                                 .store(in: &subscriptionManager.cancellables)
@@ -273,6 +308,25 @@ struct PopupView: View {
                 }
                 .padding(.horizontal, 4)
             }
+
+            if updateManager.isUpdateAvailable {
+                Button {
+                    if let url = URL(string: "https://github.com/Foraum-GmbH/kimai-clock/releases/latest") {
+                        NSWorkspace.shared.open(url)
+                    }
+                } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: "arrow.down.circle.fill")
+                        Text(NSLocalizedString("update_available", comment: ""))
+                            .font(.caption)
+                            .bold()
+                    }
+                }
+                    .foregroundColor(.accentColor)
+                    .buttonStyle(.plain)
+
+            }
+
         }
         .padding(15)
         .frame(width: 320)
@@ -304,5 +358,9 @@ struct PopupView: View {
             .padding(12),
             alignment: .topTrailing
         )
+        .onAppear {
+            updateManager.checkForUpdateIfNeeded()
+            apiManager.checkForRemoteTimer(true)
+        }
     }
 }

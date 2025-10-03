@@ -8,6 +8,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var popover = NSPopover()
     private var alreadyDisplaysAlert = false
 
+    private var updateManager = UpdateManager()
     private var apiManager = ApiManager()
     private var iconModel = IconModel()
     private var timerModel = TimerModel()
@@ -15,6 +16,19 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var userIdleManager: UserIdleManager!
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        let runningInstances = NSRunningApplication.runningApplications(withBundleIdentifier: Bundle.main.bundleIdentifier!)
+
+        if runningInstances.count > 1 {
+            let alert = NSAlert()
+            alert.messageText = NSLocalizedString("multiple_instances_title", comment: "")
+            alert.informativeText = NSLocalizedString("multiple_instances_body", comment: "")
+            alert.alertStyle = .warning
+            alert.addButton(withTitle: NSLocalizedString("multiple_instances_button", comment: ""))
+            alert.runModal()
+
+            NSApp.terminate(nil)
+        }
+
         NSWorkspace.shared.notificationCenter.addObserver(
                     forName: NSWorkspace.willPowerOffNotification,
                     object: nil,
@@ -75,6 +89,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             })
             .environmentObject(iconModel)
             .environmentObject(timerModel)
+            .environmentObject(updateManager)
         )
 
         launchManager = AppLaunchManager(
@@ -171,6 +186,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 break
             }
         }
+
+        apiManager.startAtLaunch()
     }
 
     @objc func handleLeftClick(_ gesture: NSClickGestureRecognizer) {

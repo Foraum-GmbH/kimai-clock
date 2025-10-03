@@ -6,13 +6,11 @@ struct Activity: Identifiable, Codable, Equatable {
     let name: String
 
     // Optional Properties
-
     let parentTitle: String?
     let project: Int?
     let color: String?
 
     // Computed Properties
-
     var activityColor: Color {
         if let hex = color, let color = Color(hex: hex) {
             return color
@@ -42,15 +40,23 @@ struct ServerVersion: Codable {
     let copyright: String
 }
 
+struct Timesheet: Codable {
+    let activity: Activity
+}
+
 @MainActor
 class ApiManager: ObservableObject {
     @AppStorage("apiToken") private var apiToken: String?
     @AppStorage("serverIP") public var serverIP: String?
+    @AppStorage("syncTimer") private var syncTimerOption: String?
 
     @Published var searchResults: [Activity] = []
     @Published var serverVersion: String = "..."
     @Published var activeActivity: Activity?
+
     private var activeTimesheetId: Int?
+    private var cancellables = Set<AnyCancellable>()
+    private var syncTimer: DispatchSourceTimer?
 
     private let session: URLSession = {
         let tempSession = URLSession.shared
@@ -60,6 +66,78 @@ class ApiManager: ObservableObject {
         tempSession.configuration.httpCookieAcceptPolicy = .never
         return tempSession
     }()
+
+    // MARK: - Timer setup
+
+    func setupSyncTimer() {
+        syncTimer?.cancel()
+        syncTimer = nil
+
+        guard let option = syncTimerOption,
+              let interval = intervalForOption(option) else { return }
+
+        let timer = DispatchSource.makeTimerSource(queue: .main)
+        timer.schedule(deadline: .now() + interval, repeating: interval)
+        timer.setEventHandler { [weak self] in
+            self?.checkForRemoteTimer(false)
+        }
+        timer.resume()
+        syncTimer = timer
+
+        print("Sync timer started with interval \(interval) seconds (\(option))")
+    }
+
+    private func intervalForOption(_ option: String) -> TimeInterval? {
+        switch option {
+        case "sync_every_5_min": return 5 * 60
+        case "sync_every_15_min": return 15 * 60
+        case "sync_every_30_min": return 30 * 60
+        default: return nil
+        }
+    }
+
+    func startAtLaunch() {
+        // check timer regardless of option on launch
+        checkForRemoteTimer(true)
+        checkForRemoteTimer(false)
+
+        setupSyncTimer()
+    }
+
+    // MARK: - API methods
+
+    func checkForRemoteTimer(_ onOpen: Bool = false) {
+        if activeActivity != nil { return }
+        if syncTimerOption == "sync_on_open" && !onOpen { return }
+        if syncTimerOption != "sync_on_open" && onOpen { return }
+
+        guard let baseURL = serverIP,
+              let url = URL(string: "\(baseURL)/api/timesheets/active") else { return }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        request.addValue("Bearer \(apiToken ?? "")", forHTTPHeaderField: "Authorization")
+        request.addValue("application/json", forHTTPHeaderField: "Accept")
+        request.addValue("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36 KimaiClock", forHTTPHeaderField: "User-Agent")
+
+        session.dataTaskPublisher(for: request)
+            .map(\.data)
+            .decode(type: [Timesheet].self, decoder: JSONDecoder())
+            .map { $0.first }
+            .sink(receiveCompletion: { completion in
+                if case .failure(let error) = completion {
+                    print("Failed to fetch remote timer:", error)
+                }
+            }, receiveValue: { firstTimer in
+                if let timer = firstTimer {
+                    // TODO: parse & start timer
+                    print("Remote timer found: \(timer)")
+                } else {
+                    print("No Remove timer found")
+                }
+            })
+            .store(in: &cancellables)
+    }
 
     func getVersion() -> AnyCancellable {
         guard let baseURL = serverIP,
@@ -257,5 +335,4 @@ class ApiManager: ObservableObject {
             .receive(on: RunLoop.main)
             .eraseToAnyPublisher()
     }
-
 }
