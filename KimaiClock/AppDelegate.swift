@@ -13,7 +13,14 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var iconModel = IconModel()
     private var timerModel = TimerModel()
     private var launchManager: AppLaunchManager!
+    private var recentActivitiesManager = RecentActivitiesManager()
     private var userIdleManager: UserIdleManager!
+
+    private var paragraph: NSMutableParagraphStyle = {
+        let temp = NSMutableParagraphStyle()
+        temp.alignment = .center
+        return temp
+    }()
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         let runningInstances = NSRunningApplication.runningApplications(withBundleIdentifier: Bundle.main.bundleIdentifier!)
@@ -58,9 +65,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             button.target = self
         }
 
-        let paragraph = NSMutableParagraphStyle()
-        paragraph.alignment = .center
-
         timerModel.$timer
             .sink { [weak self] _ in
                 guard let self = self else { return }
@@ -86,10 +90,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         popover.contentViewController = NSHostingController(
             rootView: PopupView(closePopup: { [weak self] in
                 self?.popover.performClose(nil)
-            })
+            }, startRemoteTimerProcess: startRemoteTimerProcess)
             .environmentObject(iconModel)
             .environmentObject(timerModel)
             .environmentObject(updateManager)
+            .environmentObject(recentActivitiesManager)
         )
 
         launchManager = AppLaunchManager(
@@ -187,7 +192,32 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             }
         }
 
-        apiManager.startAtLaunch()
+        apiManager.startAtLaunch(startRemoteTimerProcess)
+    }
+
+    private func startRemoteTimerProcess(remoteTime: Double) {
+        if remoteTime < 0 {
+            timerModel.stop()
+            timerModel.isActive = false
+            iconModel.setSystemIcon("circle")
+            ChimeManager.shared.play(.stop)
+
+            let attrTitle = NSAttributedString(
+                string: self.timerModel.formattedTimeMenuBar,
+                attributes: [
+                    .paragraphStyle: paragraph,
+                    .baselineOffset: -1
+                ]
+            )
+
+            self.statusItem.button?.attributedTitle = attrTitle
+        } else {
+            timerModel.start(remoteTime)
+            timerModel.isActive = true
+            iconModel.setSystemIcon("pause.circle")
+            recentActivitiesManager.add(apiManager.activeActivity)
+            ChimeManager.shared.play(.start)
+        }
     }
 
     @objc func handleLeftClick(_ gesture: NSClickGestureRecognizer) {
@@ -197,6 +227,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             popover.performClose(nil)
         } else if let button = statusItem.button {
             popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
+            updateManager.checkForUpdateIfNeeded()
+            apiManager.checkForRemoteTimer(true, startRemoteTimerProcess)
         }
     }
 

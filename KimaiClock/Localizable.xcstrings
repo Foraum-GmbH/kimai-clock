@@ -2,7 +2,7 @@
   "sourceLanguage" : "en",
   "strings" : {
     "" : {
-
+      "shouldTranslate" : false
     },
     "about_title" : {
       "extractionState" : "manual",
@@ -27,13 +27,29 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Nach Anmeldung starten"
+            "value" : "KimaiClock nach anmeldung starten"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Launch on login"
+            "value" : "Launch KimaiClock on login"
+          }
+        }
+      }
+    },
+    "autostart_title" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Autostart"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Autostart"
           }
         }
       }
@@ -105,12 +121,32 @@
         }
       }
     },
+    "Key" : {
+      "extractionState" : "manual",
+      "shouldTranslate" : false
+    },
+    "kimai_button" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kimai.org"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kimai.org"
+          }
+        }
+      }
+    },
     "multiple_instances_body" : {
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
           "stringUnit" : {
-            "state" : "needs_review",
+            "state" : "translated",
             "value" : "Eine andere Instanz dieser Anwendung läuft bereits. Es kann nur eine Instanz aktiv sein."
           }
         },
@@ -127,7 +163,7 @@
       "localizations" : {
         "de" : {
           "stringUnit" : {
-            "state" : "needs_review",
+            "state" : "translated",
             "value" : "Okay"
           }
         },
@@ -144,7 +180,7 @@
       "localizations" : {
         "de" : {
           "stringUnit" : {
-            "state" : "needs_review",
+            "state" : "translated",
             "value" : "KimaiClock läuft bereits"
           }
         },
@@ -186,6 +222,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Remove from List"
+          }
+        }
+      }
+    },
+    "reset_action_title" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "App zurücksetzen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reset App"
           }
         }
       }

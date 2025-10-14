@@ -42,6 +42,10 @@ struct ServerVersion: Codable {
 
 struct Timesheet: Codable {
     let activity: Activity
+
+    // Remote timer parsing
+    let id: Int?
+    let begin: String?
 }
 
 @MainActor
@@ -58,6 +62,12 @@ class ApiManager: ObservableObject {
     private var cancellables = Set<AnyCancellable>()
     private var syncTimer: DispatchSourceTimer?
 
+    private let secondsFormatter: ISO8601DateFormatter = {
+        let temp = ISO8601DateFormatter()
+        temp.formatOptions = [.withInternetDateTime, .withTimeZone]
+        return temp
+    }()
+
     private let session: URLSession = {
         let tempSession = URLSession.shared
         tempSession.configuration.urlCache = nil
@@ -69,7 +79,7 @@ class ApiManager: ObservableObject {
 
     // MARK: - Timer setup
 
-    func setupSyncTimer() {
+    func setupSyncTimer(_ callback: @escaping (Double) -> Void) {
         syncTimer?.cancel()
         syncTimer = nil
 
@@ -79,7 +89,7 @@ class ApiManager: ObservableObject {
         let timer = DispatchSource.makeTimerSource(queue: .main)
         timer.schedule(deadline: .now() + interval, repeating: interval)
         timer.setEventHandler { [weak self] in
-            self?.checkForRemoteTimer(false)
+            self?.checkForRemoteTimer(false, callback)
         }
         timer.resume()
         syncTimer = timer
@@ -96,18 +106,16 @@ class ApiManager: ObservableObject {
         }
     }
 
-    func startAtLaunch() {
+    func startAtLaunch(_ callback: @escaping (Double) -> Void) {
         // check timer regardless of option on launch
-        checkForRemoteTimer(true)
-        checkForRemoteTimer(false)
-
-        setupSyncTimer()
+        checkForRemoteTimer(true, callback)
+        checkForRemoteTimer(false, callback)
+        setupSyncTimer(callback)
     }
 
     // MARK: - API methods
 
-    func checkForRemoteTimer(_ onOpen: Bool = false) {
-        if activeActivity != nil { return }
+    func checkForRemoteTimer(_ onOpen: Bool = false, _ callback: @escaping (Double) -> Void) {
         if syncTimerOption == "sync_on_open" && !onOpen { return }
         if syncTimerOption != "sync_on_open" && onOpen { return }
 
@@ -122,6 +130,14 @@ class ApiManager: ObservableObject {
 
         session.dataTaskPublisher(for: request)
             .map(\.data)
+            .handleEvents(receiveOutput: { data in
+                if let jsonString = String(data: data, encoding: .utf8) {
+                    print("🔍 Raw data:\n\(jsonString)")
+                } else {
+                    print("⚠️ Could not decode data as UTF-8 string")
+                }
+            })
+            // TODO: handle kimai server project dict to parentTitle: string and project: id number decoding -> and display the info in the popupview
             .decode(type: [Timesheet].self, decoder: JSONDecoder())
             .map { $0.first }
             .sink(receiveCompletion: { completion in
@@ -129,11 +145,29 @@ class ApiManager: ObservableObject {
                     print("Failed to fetch remote timer:", error)
                 }
             }, receiveValue: { firstTimer in
-                if let timer = firstTimer {
-                    // TODO: parse & start timer
-                    print("Remote timer found: \(timer)")
+                if self.activeActivity != nil {
+                    // local timer is running -> check remote -> stop local if needed
+                    if firstTimer == nil {
+                        DispatchQueue.main.async {
+                            self.activeTimesheetId = nil
+                            self.activeActivity = nil
+                            callback(-1)
+                        }
+                    }
                 } else {
-                    print("No Remove timer found")
+                    // no local timer is running -> check remote -> start local if needed
+                    if let timer = firstTimer,
+                       let timesheetId = timer.id {
+                        DispatchQueue.main.async {
+                            self.activeTimesheetId = timesheetId
+                            self.activeActivity = timer.activity
+
+                            let beginDate = self.secondsFormatter.date(from: timer.begin ?? "") ?? Date()
+                            let now = Date()
+                            let seconds = now.timeIntervalSince(beginDate)
+                            callback(seconds)
+                        }
+                    }
                 }
             })
             .store(in: &cancellables)

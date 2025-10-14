@@ -8,7 +8,9 @@ struct PopupView: View {
     @EnvironmentObject var iconModel: IconModel
     @EnvironmentObject var timerModel: TimerModel
     @EnvironmentObject var updateManager: UpdateManager
+    @EnvironmentObject var recentActivitiesManager: RecentActivitiesManager
     let closePopup: () -> Void
+    let startRemoteTimerProcess: (Double) -> Void
 
     @State private var isHovering = false
     @State private var pulse = false
@@ -20,7 +22,6 @@ struct PopupView: View {
     private let searchSubject = PassthroughSubject<String, Never>()
 
     @StateObject private var apiManager = ApiManager()
-    @StateObject private var recentActivitiesManager = RecentActivitiesManager()
     @StateObject private var subscriptionManager = SubscriptionManager()
 
     private func normalizeServerURL(_ input: String) -> String {
@@ -196,15 +197,19 @@ struct PopupView: View {
                         .padding(.leading, 0)
                         .pickerStyle(.menu)
                         .onChange(of: syncTimerOption, { _, newValue in
-                            apiManager.setupSyncTimer()
+                            apiManager.setupSyncTimer(startRemoteTimerProcess)
                         })
 
                     Spacer(minLength: 4)
 
+                    Text(NSLocalizedString("autostart_title", comment: ""))
+                        .font(.subheadline)
                     LaunchAtLogin.Toggle(NSLocalizedString("autostart", comment: ""))
 
                     Spacer(minLength: 4)
 
+                    Text(NSLocalizedString("reset_action_title", comment: ""))
+                        .font(.subheadline)
                     Button {
                         UserDefaults.standard.set(false, forKey: "appLaunchManager.dontShowAgain")
                         UserDefaults.standard.set(false, forKey: "userIdleManager.dontShowAgain")
@@ -278,15 +283,25 @@ struct PopupView: View {
                                 NSWorkspace.shared.open(url)
                             }
                         }) {
-                            Text(NSLocalizedString("github_button", comment: ""))
+                            Label(NSLocalizedString("github_button", comment: ""), systemImage: "link")
                         }
 
+                        Button(action: {
+                            if let url = URL(string: "https://www.kimai.org/de/") {
+                                NSWorkspace.shared.open(url)
+                            }
+                        }) {
+                            Label(NSLocalizedString("kimai_button", comment: ""), systemImage: "link")
+                        }
+                    }
+                    
+                    HStack(alignment: .center, spacing: 10) {
                         Button(action: {
                             if let url = URL(string: "https://paypal.me/undeaDD") {
                                 NSWorkspace.shared.open(url)
                             }
                         }) {
-                            Text(NSLocalizedString("buymeacoffee_button", comment: ""))
+                            Label(NSLocalizedString("buymeacoffee_button", comment: ""), systemImage: "cup.and.saucer")
                         }
 
                         Button(action: {
@@ -294,7 +309,7 @@ struct PopupView: View {
                                 NSWorkspace.shared.open(url)
                             }
                         }) {
-                            Text(NSLocalizedString("feedback_button", comment: ""))
+                            Label(NSLocalizedString("feedback_button", comment: ""), systemImage: "envelope")
                         }
                     }
 
@@ -358,9 +373,5 @@ struct PopupView: View {
             .padding(12),
             alignment: .topTrailing
         )
-        .onAppear {
-            updateManager.checkForUpdateIfNeeded()
-            apiManager.checkForRemoteTimer(true)
-        }
     }
 }
