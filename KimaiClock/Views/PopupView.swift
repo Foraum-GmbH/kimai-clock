@@ -194,7 +194,7 @@ struct PopupView: View {
                         .labelsHidden()
                         .padding(.leading, 0)
                         .pickerStyle(.menu)
-                        .onChange(of: syncTimerOption, { _, newValue in
+                        .onChange(of: syncTimerOption, { _, _ in
                             apiManager.setupSyncTimer(startRemoteTimerProcess)
                         })
 
@@ -292,7 +292,7 @@ struct PopupView: View {
                             Label(NSLocalizedString("kimai_button", comment: ""), systemImage: "link")
                         }
                     }
-                    
+
                     HStack(alignment: .center, spacing: 10) {
                         Button(action: {
                             if let url = URL(string: "https://paypal.me/undeaDD") {
