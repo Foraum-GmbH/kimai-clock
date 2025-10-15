@@ -94,6 +94,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             .environmentObject(iconModel)
             .environmentObject(timerModel)
             .environmentObject(updateManager)
+            .environmentObject(apiManager)
             .environmentObject(recentActivitiesManager)
         )
 

@@ -4,25 +4,23 @@ import SwiftUI
 struct PopupView: View {
     @AppStorage("serverIP") private var serverIP: String?
     @AppStorage("apiToken") private var apiToken: String?
+    @AppStorage("syncTimer") private var syncTimerOption: String = "sync_on_open"
 
     @EnvironmentObject var iconModel: IconModel
     @EnvironmentObject var timerModel: TimerModel
     @EnvironmentObject var updateManager: UpdateManager
+    @EnvironmentObject var apiManager: ApiManager
     @EnvironmentObject var recentActivitiesManager: RecentActivitiesManager
-    let closePopup: () -> Void
-    let startRemoteTimerProcess: (Double) -> Void
 
+    @StateObject private var subscriptionManager = SubscriptionManager()
     @State private var isHovering = false
     @State private var pulse = false
-
-    @AppStorage("syncTimer") private var syncTimerOption: String = "sync_on_open"
-    let options = ["sync_on_open", "sync_every_5_min", "sync_every_15_min", "sync_every_30_min"]
-
     @State private var searchValue = ""
-    private let searchSubject = PassthroughSubject<String, Never>()
 
-    @StateObject private var apiManager = ApiManager()
-    @StateObject private var subscriptionManager = SubscriptionManager()
+    let closePopup: () -> Void
+    let startRemoteTimerProcess: (Double) -> Void
+    private let searchSubject = PassthroughSubject<String, Never>()
+    private let options = ["sync_on_open", "sync_every_5_min", "sync_every_15_min", "sync_every_30_min"]
 
     private func normalizeServerURL(_ input: String) -> String {
         var url = input.trimmingCharacters(in: .whitespacesAndNewlines)

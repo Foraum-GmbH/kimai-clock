@@ -48,6 +48,43 @@ struct Timesheet: Codable {
     let begin: String?
 }
 
+private struct TimesheetResponse: Codable {
+    let id: Int
+    let begin: String?
+    let activity: ActivityResponse
+    let project: ProjectResponse?
+
+    struct ActivityResponse: Codable {
+        let id: Int
+        let name: String
+        let color: String?
+    }
+
+    struct ProjectResponse: Codable {
+        let id: Int
+        let name: String
+    }
+}
+
+extension TimesheetResponse {
+    func toDomainModel() -> Timesheet {
+        let activity = Activity(
+            id: activity.id,
+            name: activity.name,
+            parentTitle: project?.name,
+            project: project?.id,
+            color: activity.color,
+            timesheetId: id
+        )
+
+        return Timesheet(
+            activity: activity,
+            id: id,
+            begin: begin
+        )
+    }
+}
+
 @MainActor
 class ApiManager: ObservableObject {
     @AppStorage("apiToken") private var apiToken: String?
@@ -130,16 +167,9 @@ class ApiManager: ObservableObject {
 
         session.dataTaskPublisher(for: request)
             .map(\.data)
-            .handleEvents(receiveOutput: { data in
-                if let jsonString = String(data: data, encoding: .utf8) {
-                    print("🔍 Raw data:\n\(jsonString)")
-                } else {
-                    print("⚠️ Could not decode data as UTF-8 string")
-                }
-            })
-            // TODO: handle kimai server project dict to parentTitle: string and project: id number decoding -> and display the info in the popupview
-            .decode(type: [Timesheet].self, decoder: JSONDecoder())
-            .map { $0.first }
+            .decode(type: [TimesheetResponse].self, decoder: JSONDecoder())
+            .map { $0.first?.toDomainModel() }
+            .receive(on: DispatchQueue.main)
             .sink(receiveCompletion: { completion in
                 if case .failure(let error) = completion {
                     print("Failed to fetch remote timer:", error)
@@ -148,25 +178,21 @@ class ApiManager: ObservableObject {
                 if self.activeActivity != nil {
                     // local timer is running -> check remote -> stop local if needed
                     if firstTimer == nil {
-                        DispatchQueue.main.async {
-                            self.activeTimesheetId = nil
-                            self.activeActivity = nil
-                            callback(-1)
-                        }
+                        self.activeTimesheetId = nil
+                        self.activeActivity = nil
+                        callback(-1)
                     }
                 } else {
                     // no local timer is running -> check remote -> start local if needed
                     if let timer = firstTimer,
                        let timesheetId = timer.id {
-                        DispatchQueue.main.async {
-                            self.activeTimesheetId = timesheetId
-                            self.activeActivity = timer.activity
+                        self.activeTimesheetId = timesheetId
+                        self.activeActivity = timer.activity
 
-                            let beginDate = self.secondsFormatter.date(from: timer.begin ?? "") ?? Date()
-                            let now = Date()
-                            let seconds = now.timeIntervalSince(beginDate)
-                            callback(seconds)
-                        }
+                        let beginDate = self.secondsFormatter.date(from: timer.begin ?? "") ?? Date()
+                        let now = Date()
+                        let seconds = now.timeIntervalSince(beginDate)
+                        callback(seconds)
                     }
                 }
             })

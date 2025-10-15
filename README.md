@@ -19,6 +19,7 @@ KimaiClock is a macOS menu bar application that integrates with [Kimai](https://
 - 📊 View and resume recent tasks  
 - 🔔 Idle detection reminders  
 - 🔔 App launch reminders (VS Code, PhpStorm, Xcode, …)  
+- 📡 Automatically sync timesheets with Kimai server
 - 📓 English & German localization  
 - 🔒 Secure, Apple-notarized build  
 - ⚡ Lightweight & fast
