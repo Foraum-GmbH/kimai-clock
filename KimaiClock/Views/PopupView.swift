@@ -13,7 +13,7 @@ struct PopupView: View {
     @EnvironmentObject var recentActivitiesManager: RecentActivitiesManager
 
     @StateObject private var subscriptionManager = SubscriptionManager()
-    @State private var openSection: String? = nil
+    @State private var openSection: String?
     @State private var isHovering = false
     @State private var pulse = false
     @State private var searchValue = ""
