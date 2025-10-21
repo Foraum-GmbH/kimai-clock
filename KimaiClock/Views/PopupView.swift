@@ -13,6 +13,7 @@ struct PopupView: View {
     @EnvironmentObject var recentActivitiesManager: RecentActivitiesManager
 
     @StateObject private var subscriptionManager = SubscriptionManager()
+    @State private var openSection: String? = nil
     @State private var isHovering = false
     @State private var pulse = false
     @State private var searchValue = ""
@@ -180,7 +181,13 @@ struct PopupView: View {
 
             Divider()
 
-            CollapsibleSection(title: NSLocalizedString("settings_title", comment: "")) {
+            CollapsibleSection(
+                title: NSLocalizedString("settings_title", comment: ""),
+                isExpanded: Binding(
+                                get: { openSection == "settings" },
+                                set: { openSection = $0 ? "settings" : nil }
+                            )
+            ) {
                 VStack(alignment: .leading, spacing: 8) {
                     Spacer(minLength: 8)
 
@@ -271,7 +278,13 @@ struct PopupView: View {
                 }
             }
 
-            CollapsibleSection(title: NSLocalizedString("about_title", comment: "")) {
+            CollapsibleSection(
+                title: NSLocalizedString("about_title", comment: ""),
+                isExpanded: Binding(
+                                get: { openSection == "about" },
+                                set: { openSection = $0 ? "about" : nil }
+                            )
+            ) {
                 VStack(alignment: .leading, spacing: 12) {
                     Spacer(minLength: 8)
 

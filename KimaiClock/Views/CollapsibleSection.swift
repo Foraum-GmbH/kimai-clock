@@ -2,7 +2,7 @@ import SwiftUI
 
 struct CollapsibleSection<Content: View>: View {
     let title: String
-    @State private var isExpanded: Bool = false
+    @Binding var isExpanded: Bool
     let content: () -> Content
 
     var body: some View {
@@ -16,11 +16,17 @@ struct CollapsibleSection<Content: View>: View {
             }
             .contentShape(Rectangle())
             .onTapGesture {
-                isExpanded.toggle()
+                withAnimation(.interpolatingSpring(stiffness: 200, damping: 20)) {
+                    isExpanded.toggle()
+                }
             }
 
             if isExpanded {
-                content()
+                VStack(alignment: .leading, spacing: 0) {
+                    content()
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .transition(.move(edge: .leading).combined(with: .opacity))
             }
         }
         .padding(.vertical, 4)
