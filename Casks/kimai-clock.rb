@@ -1,6 +1,6 @@
 cask "kimai-clock" do
-  version "1.1.0"
-  sha256 "e1b0f32232ef8a11ebaf3e85975a6a90d4caffea722d5431d98c3f4f23f66636"
+  version "1.1.4"
+  sha256 "05683ad0c8e048416d692f81d1ac893c7f0025169773866bcb80707b57ed62d0"
   url "https://github.com/Foraum-GmbH/kimai-clock/releases/download/v#{version}/KimaiClock.dmg"
   name "KimaiClock"
   desc "Track and manage Kimai timesheets from the menu bar"
