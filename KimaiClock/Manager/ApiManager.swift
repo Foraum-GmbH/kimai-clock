@@ -15,7 +15,7 @@ struct Activity: Identifiable, Codable, Equatable {
         if let hex = color, let color = Color(hex: hex) {
             return color
         } else {
-            return Color.kimami
+            return Color.kimai
         }
     }
 

@@ -3,6 +3,7 @@ import SwiftUI
 
 struct PopupView: View {
     @AppStorage("serverIP") private var serverIP: String?
+    @AppStorage("isSecure") private var isSecure: Bool?
     @AppStorage("apiToken") private var apiToken: String?
     @AppStorage("syncTimer") private var syncTimerOption: String = "sync_on_open"
 
@@ -23,27 +24,30 @@ struct PopupView: View {
     private let searchSubject = PassthroughSubject<String, Never>()
     private let options = ["sync_on_open", "sync_every_5_min", "sync_every_15_min", "sync_every_30_min"]
 
-    private func normalizeServerURL(_ input: String) -> String {
+    private func normalizeServerURL(_ input: String) -> (url: String, isSecure: Bool) {
+        var isSecure = true
         var url = input.trimmingCharacters(in: .whitespacesAndNewlines)
             .lowercased()
 
+        // Add https:// if no scheme provided
         if !url.hasPrefix("http://") && !url.hasPrefix("https://") {
             url = "https://" + url
         }
 
-        url = url.replacingOccurrences(of: "^http://", with: "https://", options: .regularExpression)
+        // Check if user explicitly specified http://
+        if url.hasPrefix("http://") {
+            isSecure = false
+        }
 
         guard let comps = URLComponents(string: url) else {
-            return url
+            return (url, isSecure)
         }
 
-        var normalized = "https://" + (comps.host ?? "")
-
-        if let port = comps.port {
-            normalized += ":\(port)"
-        }
-
-        return normalized
+        // build normalized url
+        let scheme = comps.scheme ?? "https"
+        var normalized = scheme + "://" + (comps.host ?? "")
+        normalized += comps.port.map { ":\($0)" } ?? ""
+        return (normalized, isSecure)
     }
 
     var body: some View {
@@ -127,7 +131,7 @@ struct PopupView: View {
             HStack(alignment: .center, spacing: 0) {
                 Text(apiManager.activeActivity?.name ?? " ")
                     .font(.headline)
-                    .foregroundColor(apiManager.activeActivity?.activityColor ?? Color.kimami)
+                    .foregroundColor(apiManager.activeActivity?.activityColor ?? Color.kimai)
                 Text(apiManager.activeActivity != nil ? " / " + (apiManager.activeActivity!.parentTitle ?? "-") : NSLocalizedString("select_activity", comment: ""))
                     .font(.subheadline)
                     .foregroundColor(.secondary)
@@ -233,8 +237,9 @@ struct PopupView: View {
                     TextField(NSLocalizedString("server_url_placeholder", comment: ""), text: Binding(
                             get: { serverIP ?? "" },
                             set: { newValue in
-                                let cleaned = normalizeServerURL(newValue)
+                                let (cleaned, secureURL) = normalizeServerURL(newValue)
                                 serverIP = cleaned.isEmpty ? nil : cleaned
+                                isSecure = secureURL
                             }
                         )
                     )
@@ -243,6 +248,18 @@ struct PopupView: View {
                             apiManager.getVersion()
                                 .store(in: &subscriptionManager.cancellables)
                         }
+
+                    if isSecure == false {
+                        HStack(spacing: 4) {
+                            Image(systemName: "exclamationmark.triangle.fill")
+                                .foregroundColor(.orange)
+                                .font(.caption)
+                            Text(NSLocalizedString("insecure_connection_warning", comment: ""))
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                        .padding(.top, 2)
+                    }
 
                     Spacer(minLength: 4)
 

@@ -1,8 +1,6 @@
 import SwiftUI
 
 extension Color {
-    static let kimami = Color(red: 97/255, green: 203/255, blue: 68/255)
-
     init?(hex: String) {
         var hexSanitized = hex.trimmingCharacters(in: .whitespacesAndNewlines)
         hexSanitized = hexSanitized.replacingOccurrences(of: "#", with: "")

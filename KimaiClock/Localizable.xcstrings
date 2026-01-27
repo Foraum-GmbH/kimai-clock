@@ -76,13 +76,13 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "© 2025 Foraum GmbH"
+            "value" : "© 2026 Foraum GmbH"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "© 2025 Foraum GmbH"
+            "value" : "© 2026 Foraum GmbH"
           }
         }
       }
@@ -121,9 +121,28 @@
         }
       }
     },
+    "insecure_connection_warning" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Warnung: Diese Verbindung ist nicht sicher (HTTP)"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Warning: This connection is not secure (HTTP)"
+          }
+        }
+      }
+    },
     "Key" : {
       "extractionState" : "manual",
       "shouldTranslate" : false
+    },
+    "Key 1" : {
+      "extractionState" : "manual"
     },
     "kimai_button" : {
       "localizations" : {

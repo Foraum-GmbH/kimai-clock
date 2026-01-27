@@ -15,7 +15,7 @@ struct AdaptiveButtonStyle: ButtonStyle {
                     .fill(
                         isDisabled ? Color.secondary.opacity(0.15) :
                         isDanger ? Color.red :
-                        isProminent ? Color.kimami :
+                        isProminent ? Color.kimai :
                         Color.secondary.opacity(0.5)
                     )
             )
