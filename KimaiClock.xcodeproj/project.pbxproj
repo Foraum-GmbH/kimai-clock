@@ -11,6 +11,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		122A24BA2F28CEA800466D2A /* CHANGELOG.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = CHANGELOG.md; sourceTree = "<group>"; };
 		12616C8B2EA52E6A0041BA7A /* KimaiClockAppIcon.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = KimaiClockAppIcon.icon; sourceTree = "<group>"; };
 		129FFA742E58CD36007B73D3 /* KimaiClock.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = KimaiClock.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		12B7E9F72E59DA090035700A /* LICENSE.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = LICENSE.md; sourceTree = "<group>"; };
@@ -55,6 +56,7 @@
 			children = (
 				12B7E9F72E59DA090035700A /* LICENSE.md */,
 				12B7E9F82E59DA090035700A /* README.md */,
+				122A24BA2F28CEA800466D2A /* CHANGELOG.md */,
 				12616C8B2EA52E6A0041BA7A /* KimaiClockAppIcon.icon */,
 				129FFA762E58CD36007B73D3 /* KimaiClock */,
 				129FFA752E58CD36007B73D3 /* Products */,

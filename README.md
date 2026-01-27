@@ -27,6 +27,10 @@ KimaiClock is a macOS menu bar application that integrates with [Kimai](https://
 - 🌙 Dark mode support  
 - 📨 Actively maintained
 
+## 📋 Changelog
+
+For a detailed list of changes, bug fixes, and new features in each release, see [CHANGELOG.md](./CHANGELOG.md).
+
 ## 🎛️ Menu Bar Button Actions
 
 - **Left click** → Open/close the view  
@@ -81,4 +85,4 @@ Feel free to check the [issues page](../../issues).
 ## 📜 License
 
 Distributed under the MIT License.  
-See [LICENSE](LICENSE) for more information.
+See [LICENSE](./LICENSE.md) for more information.
