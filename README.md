@@ -130,7 +130,7 @@ A desktop widget is in development that will show the current timer state and el
 ## 🤝 Contributors
 <a href="https://github.com/fabian-rohr"><img src="https://images.weserv.nl/?url=avatars.githubusercontent.com/u/20979750&w=300&h=300&fit=cover&mask=circle" width="50" height="50" style="border-radius:50%"/></a>
 <a href="https://github.com/undeadd"><img src="https://images.weserv.nl/?url=avatars.githubusercontent.com/u/8116188&w=300&h=300&fit=cover&mask=circle" width="50" height="50" style="border-radius:50%"/></a>
-<a href="https://github.com/dependabot"><img src="https://images.weserv.nl/?url=avatars.githubusercontent.com/u/27347476?s=200&w=300&h=300&fit=cover&mask=circle" width="50" height="50" style="border-radius:50%"/></a>
+<a href="https://claude.ai"><img src="https://images.weserv.nl/?url=avatars.githubusercontent.com/anthropics&w=300&h=300&fit=cover&mask=circle" width="50" height="50" style="border-radius:50%"/></a>
 
 Contributions, issues and feature requests are welcome!  
 Feel free to check the [issues page](../../issues).  
