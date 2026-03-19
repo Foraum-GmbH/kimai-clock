@@ -2,6 +2,16 @@
 
 All notable changes to KimaiClock will be documented in this file.
 
+## [1.5.2] - 2026-03-19
+
+### Added
+- Desktop widget (KimaiWidgetExtension) shipping as part of the app bundle
+
+### Fixed
+- Build system updated to support widget extension signing and notarization
+
+---
+
 ## [1.2.0] - 2026-03-19
 
 ### Added
