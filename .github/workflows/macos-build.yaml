@@ -39,6 +39,22 @@ jobs:
         p12-file-base64: ${{ secrets.CERTIFICATES_P12 }}
         p12-password: ${{ secrets.CERTIFICATES_P12_PASSWORD }}
 
+    - name: Install Provisioning Profiles
+      run: |
+        mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+
+        echo "${{ secrets.PROVISIONING_PROFILE_APP }}" | base64 --decode > /tmp/app.provisionprofile
+        echo "${{ secrets.PROVISIONING_PROFILE_WIDGET }}" | base64 --decode > /tmp/widget.provisionprofile
+
+        APP_UUID=$(security cms -D -i /tmp/app.provisionprofile | plutil -extract UUID raw -)
+        WIDGET_UUID=$(security cms -D -i /tmp/widget.provisionprofile | plutil -extract UUID raw -)
+
+        cp /tmp/app.provisionprofile ~/Library/MobileDevice/Provisioning\ Profiles/$APP_UUID.provisionprofile
+        cp /tmp/widget.provisionprofile ~/Library/MobileDevice/Provisioning\ Profiles/$WIDGET_UUID.provisionprofile
+
+        echo "APP_PROFILE_UUID=$APP_UUID" >> $GITHUB_ENV
+        echo "WIDGET_PROFILE_UUID=$WIDGET_UUID" >> $GITHUB_ENV
+
     - name: Decode Apple API Key
       run: |
         echo "Decoding APPLE_API_KEY..."
@@ -68,7 +84,7 @@ jobs:
           
     - name: Export App
       run: |
-        # Create ExportOptions.plist
+        # Create ExportOptions.plist with manual signing using installed profiles
         cat > ExportOptions.plist << EOF
         <?xml version="1.0" encoding="UTF-8"?>
         <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -79,23 +95,28 @@ jobs:
             <key>destination</key>
             <string>export</string>
             <key>signingStyle</key>
-            <string>automatic</string>
+            <string>manual</string>
+            <key>signingCertificate</key>
+            <string>Developer ID Application</string>
             <key>teamID</key>
             <string>${{ secrets.APPLE_TEAM_ID }}</string>
+            <key>provisioningProfiles</key>
+            <dict>
+                <key>de.foraum.KimaiClock</key>
+                <string>$APP_PROFILE_UUID</string>
+                <key>de.foraum.KimaiClock.KimaiWidget</key>
+                <string>$WIDGET_PROFILE_UUID</string>
+            </dict>
         </dict>
         </plist>
         EOF
-        
+
         # Export the archive
         xcodebuild \
           -archivePath "$APP_NAME.xcarchive" \
           -exportArchive \
           -exportPath export \
-          -exportOptionsPlist ExportOptions.plist \
-          -allowProvisioningUpdates \
-          -authenticationKeyPath "$GITHUB_WORKSPACE/AuthKey.p8" \
-          -authenticationKeyID "$APPLE_API_KEY_ID" \
-          -authenticationKeyIssuerID "$APPLE_API_ISSUER"
+          -exportOptionsPlist ExportOptions.plist
 
     - name: Prepare Notarization
       run: |
