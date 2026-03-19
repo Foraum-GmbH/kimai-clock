@@ -91,7 +91,11 @@ jobs:
           -archivePath "$APP_NAME.xcarchive" \
           -exportArchive \
           -exportPath export \
-          -exportOptionsPlist ExportOptions.plist
+          -exportOptionsPlist ExportOptions.plist \
+          -allowProvisioningUpdates \
+          -authenticationKeyPath "$GITHUB_WORKSPACE/AuthKey.p8" \
+          -authenticationKeyID "$APPLE_API_KEY_ID" \
+          -authenticationKeyIssuerID "$APPLE_API_ISSUER"
 
     - name: Prepare Notarization
       run: |
