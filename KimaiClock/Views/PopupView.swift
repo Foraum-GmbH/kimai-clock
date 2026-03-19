@@ -315,7 +315,7 @@ struct PopupView: View {
                             .textFieldStyle(RoundedBorderTextFieldStyle())
                             .onChange(of: idleThreshold) { _, _ in
                                 // store & update related routines ?
-                                //apiManager.getVersion().store(in: &subscriptionManager.cancellables)
+                                // apiManager.getVersion().store(in: &subscriptionManager.cancellables)
                             }
 
                         Text(NSLocalizedString("minutes_suffix", comment: ""))

@@ -1,13 +1,13 @@
 internal import Combine
-import WidgetKit
 import SwiftUI
+import WidgetKit
 
 @MainActor
 class TimerModel: ObservableObject {
     @Published var timer: TimeInterval = 0 {
         didSet { syncToWidget() }
     }
-    
+
     @Published var isActive: Bool? {
         didSet { syncToWidget() }
     }
@@ -54,7 +54,7 @@ class TimerModel: ObservableObject {
     }
 
     var formattedTimeStartedAt: String {
-        if ( timer == 0 ) {
+        if timer == 0 {
             return NSLocalizedString("timer_not_started", comment: "")
         } else {
             let startTime = Date(timeIntervalSinceNow: -timer)

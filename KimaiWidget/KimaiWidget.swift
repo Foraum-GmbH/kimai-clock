@@ -30,22 +30,26 @@ struct Provider: TimelineProvider {
         TimerEntry(date: Date(), timer: 0, isActive: nil, subtitle: nil)
     }
 
-    func getSnapshot(in context: Context, completion: @escaping (TimerEntry) -> ()) {
+    func getSnapshot(in context: Context, completion: @escaping (TimerEntry) -> Void) {
         completion(currentEntry())
     }
 
-    func getTimeline(in context: Context, completion: @escaping (Timeline<TimerEntry>) -> ()) {
+    func getTimeline(in context: Context, completion: @escaping (Timeline<TimerEntry>) -> Void) {
         var entries: [TimerEntry] = []
         let now = Date()
 
         // Refresh every second while active, every 60s while paused
-        let interval: TimeInterval = WidgetSync.isActive == true ? 1 : 60
-        let count = WidgetSync.isActive == true ? 60 : 1
+        let isActive = WidgetSync.isActive
+        let subtitle = WidgetSync.subtitle
 
-        for i in 0..<count {
-            let entryDate = now.addingTimeInterval(Double(i) * interval)
-            let timerValue = WidgetSync.timer + (WidgetSync.isActive == true ? Double(i) * interval : 0)
-            entries.append(TimerEntry(date: entryDate, timer: timerValue, isActive: WidgetSync.isActive, subtitle: WidgetSync.subtitle))
+        let interval: TimeInterval = isActive == true ? 1 : 60
+        let count = isActive == true ? 60 : 1
+
+        for index in 0..<count {
+            let entryDate = now.addingTimeInterval(Double(index) * interval)
+            let timerValue = WidgetSync.timer + (isActive == true ? Double(index) * interval : 0)
+            let entry = TimerEntry(date: entryDate, timer: timerValue, isActive: isActive, subtitle: subtitle)
+            entries.append(entry)
         }
 
         // Re-fetch after the last entry

@@ -32,7 +32,7 @@ enum WidgetSync {
     static func save(timer: TimeInterval, isActive: Bool?) {
         defaults.set(timer, forKey: timerKey)
         defaults.set(subtitle, forKey: subtitleKey)
-        
+
         if let isActive {
             defaults.set(isActive, forKey: isActiveKey)
         } else {

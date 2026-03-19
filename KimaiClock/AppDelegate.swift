@@ -189,7 +189,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             let idleMinutes = Int(Double(UserDefaults.standard.string(forKey: "idleThreshold") ?? "15") ?? 15)
             showIdleAlert(idleMinutes: idleMinutes * 60) { [weak self] selectedAction in
                 guard let self else { return }
-                
+
                 alreadyDisplaysAlert = false
                 userIdleManager.reset()
 

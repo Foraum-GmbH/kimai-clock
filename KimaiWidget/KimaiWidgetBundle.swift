@@ -36,11 +36,11 @@ struct EmptyProvider: TimelineProvider {
         SimpleEntry(date: Date())
     }
 
-    func getSnapshot(in context: Context, completion: @escaping (SimpleEntry) -> ()) {
+    func getSnapshot(in context: Context, completion: @escaping (SimpleEntry) -> Void) {
         completion(SimpleEntry(date: Date()))
     }
 
-    func getTimeline(in context: Context, completion: @escaping (Timeline<Entry>) -> ()) {
+    func getTimeline(in context: Context, completion: @escaping (Timeline<Entry>) -> Void) {
         completion(Timeline(entries: [SimpleEntry(date: Date())], policy: .never))
     }
 }

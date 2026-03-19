@@ -5,8 +5,8 @@
 //  Created by Dominic on 05.02.26.
 //
 
-import SwiftUI
 import AppKit
+import SwiftUI
 
 enum IdleAction {
     case continueTimer

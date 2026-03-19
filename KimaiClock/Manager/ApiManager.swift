@@ -1,6 +1,6 @@
 internal import Combine
-import WidgetKit
 import SwiftUI
+import WidgetKit
 
 public struct Activity: Identifiable, Codable, Equatable {
     public let id: Int
