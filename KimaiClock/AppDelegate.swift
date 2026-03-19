@@ -171,7 +171,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         let idleMinutes = Double(UserDefaults.standard.string(forKey: "idleThreshold") ?? "15") ?? 15
-        userIdleManager = UserIdleManager(threshold: idleMinutes) { [weak self] in
+        userIdleManager = UserIdleManager(threshold: idleMinutes * 60) { [weak self] in
             guard
                 let self,
                 UserDefaults.standard.bool(forKey: "userIdleManager.dontShowAgain") == false,
@@ -187,7 +187,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             ChimeManager.shared.play(.pause)
 
             let idleMinutes = Int(Double(UserDefaults.standard.string(forKey: "idleThreshold") ?? "15") ?? 15)
-            showIdleAlert(idleMinutes: idleMinutes * 60) { [weak self] selectedAction in
+            showIdleAlert(idleMinutes: idleMinutes) { [weak self] selectedAction in
                 guard let self else { return }
 
                 alreadyDisplaysAlert = false
