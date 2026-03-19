@@ -1,8 +1,9 @@
 internal import Combine
+import WidgetKit
 import SwiftUI
 
-struct Activity: Identifiable, Codable, Equatable {
-    let id: Int
+public struct Activity: Identifiable, Codable, Equatable {
+    public let id: Int
     let name: String
 
     // Optional Properties
@@ -93,7 +94,16 @@ class ApiManager: ObservableObject {
 
     @Published var searchResults: [Activity] = []
     @Published var serverVersion: String = "..."
-    @Published var activeActivity: Activity?
+    @Published var activeActivity: Activity? {
+        didSet {
+            syncToWidget()
+        }
+    }
+
+    private func syncToWidget() {
+        WidgetSync.save(activity: activeActivity)
+        WidgetCenter.shared.reloadAllTimelines()
+    }
 
     private var activeTimesheetId: Int?
     private var cancellables = Set<AnyCancellable>()
@@ -362,6 +372,59 @@ class ApiManager: ObservableObject {
                 return id
             }
             .replaceError(with: nil)
+            .receive(on: RunLoop.main)
+            .eraseToAnyPublisher()
+    }
+
+    func updateTimesheetDescription(_ description: String) -> AnyPublisher<Bool, Never> {
+        guard let id = activeTimesheetId,
+              let baseURL = serverIP,
+              let url = URL(string: "\(baseURL)/api/timesheets/\(id)") else {
+            return Just(false).eraseToAnyPublisher()
+        }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "PATCH"
+        request.addValue("Bearer \(apiToken ?? "")", forHTTPHeaderField: "Authorization")
+        request.addValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.addValue("application/json", forHTTPHeaderField: "Accept")
+        request.addValue("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36 KimaiClock",
+                         forHTTPHeaderField: "User-Agent")
+
+        let body: [String: Any] = ["description": description]
+        request.httpBody = try? JSONSerialization.data(withJSONObject: body)
+
+        return session.dataTaskPublisher(for: request)
+            .map { $0.response as? HTTPURLResponse }
+            .map { $0?.statusCode == 200 }
+            .replaceError(with: false)
+            .receive(on: RunLoop.main)
+            .eraseToAnyPublisher()
+    }
+
+    func deleteTimesheet() -> AnyPublisher<Bool, Never> {
+        guard let id = activeTimesheetId,
+              let baseURL = serverIP,
+              let url = URL(string: "\(baseURL)/api/timesheets/\(id)") else {
+            return Just(false).eraseToAnyPublisher()
+        }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "DELETE"
+        request.addValue("Bearer \(apiToken ?? "")", forHTTPHeaderField: "Authorization")
+        request.addValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.addValue("application/json", forHTTPHeaderField: "Accept")
+        request.addValue("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36 KimaiClock",
+                         forHTTPHeaderField: "User-Agent")
+
+        return session.dataTaskPublisher(for: request)
+            .map { $0.response as? HTTPURLResponse }
+            .map { $0?.statusCode == 204 }
+            .map {
+                self.activeTimesheetId = nil
+                return $0
+            }
+            .replaceError(with: false)
             .receive(on: RunLoop.main)
             .eraseToAnyPublisher()
     }

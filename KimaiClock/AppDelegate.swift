@@ -15,6 +15,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var launchManager: AppLaunchManager!
     private var recentActivitiesManager = RecentActivitiesManager()
     private var userIdleManager: UserIdleManager!
+    private var popoverState = PopoverState()
 
     private var paragraph: NSMutableParagraphStyle = {
         let temp = NSMutableParagraphStyle()
@@ -43,6 +44,26 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         ) { [weak self] _ in
             DispatchQueue.main.async {
                 self?.stopKimaiTask()
+            }
+        }
+
+        NotificationCenter.default.addObserver(
+            forName: NSPopover.willShowNotification,
+            object: popover,
+            queue: .main
+        ) { [weak self] _ in
+            DispatchQueue.main.async {
+                self?.popoverState.isPresented = true
+            }
+        }
+
+        NotificationCenter.default.addObserver(
+            forName: NSPopover.didCloseNotification,
+            object: popover,
+            queue: .main
+        ) { [weak self] _ in
+            DispatchQueue.main.async {
+                self?.popoverState.isPresented = false
             }
         }
 
@@ -96,6 +117,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             .environmentObject(updateManager)
             .environmentObject(apiManager)
             .environmentObject(recentActivitiesManager)
+            .environmentObject(popoverState)
         )
 
         launchManager = AppLaunchManager(
@@ -107,9 +129,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         ) { [weak self] bundleID in
             guard
                 let self,
-                UserDefaults.standard.bool(forKey: "appLaunchManager.dontShowAgain") == true,
+                UserDefaults.standard.bool(forKey: "appLaunchManager.dontShowAgain") == false,
                 self.timerModel.isActive == false,
-                alreadyDisplaysAlert == true
+                alreadyDisplaysAlert == false
             else { return }
 
             alreadyDisplaysAlert = true
@@ -148,12 +170,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             }
         }
 
-        userIdleManager = UserIdleManager(threshold: 60 * 30) { [weak self] in
+        let idleMinutes = Double(UserDefaults.standard.string(forKey: "idleThreshold") ?? "15") ?? 15
+        userIdleManager = UserIdleManager(threshold: idleMinutes) { [weak self] in
             guard
                 let self,
-                UserDefaults.standard.bool(forKey: "userIdleManager.dontShowAgain") == true,
+                UserDefaults.standard.bool(forKey: "userIdleManager.dontShowAgain") == false,
                 self.timerModel.isActive == true,
-                alreadyDisplaysAlert == true
+                self.alreadyDisplaysAlert == false
             else { return }
 
             alreadyDisplaysAlert = true
@@ -163,33 +186,40 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             iconModel.setSystemIcon("play.circle")
             ChimeManager.shared.play(.pause)
 
-            let alert = NSAlert()
-            alert.messageText = "You’ve been idle"
-            alert.informativeText = "You have a timer running but haven’t interacted with your Mac for 30 minutes."
+            let idleMinutes = Int(Double(UserDefaults.standard.string(forKey: "idleThreshold") ?? "15") ?? 15)
+            showIdleAlert(idleMinutes: idleMinutes * 60) { [weak self] selectedAction in
+                guard let self else { return }
+                
+                alreadyDisplaysAlert = false
+                userIdleManager.reset()
 
-            alert.icon = NSImage(systemSymbolName: "moon.zzz", accessibilityDescription: nil)
+                switch selectedAction {
+                case .continueTimer:
+                    timerModel.start()
+                    timerModel.isActive = true
+                    iconModel.setSystemIcon("pause.circle")
+                    ChimeManager.shared.play(.start)
 
-            alert.addButton(withTitle: "Stop Tracking")
-            alert.addButton(withTitle: "Cancel")
-            let dontShowButton = alert.addButton(withTitle: "Don’t Show Again")
-            dontShowButton.hasDestructiveAction = true
-
-            let response = alert.runModal()
-            alreadyDisplaysAlert = false
-
-            switch response {
-            case .alertFirstButtonReturn:
-                timerModel.stop()
-                iconModel.setSystemIcon("circle")
-                ChimeManager.shared.play(.stop)
-            case .alertSecondButtonReturn:
-                // resume paused timer
-                timerModel.start()
-                iconModel.setSystemIcon("pause.circle")
-            case .alertThirdButtonReturn:
-                UserDefaults.standard.set(true, forKey: "userIdleManager.dontShowAgain")
-            default:
-                break
+                case .stopTimer:
+                    apiManager.stopActivity()
+                        .sink { [weak self] success in
+                            guard let self else { return }
+                            if success {
+                                apiManager.activeActivity = nil
+                                timerModel.stop()
+                                timerModel.isActive = false
+                                iconModel.setSystemIcon("circle")
+                                ChimeManager.shared.play(.stop)
+                                updateStatusBarTitle()
+                            } else {
+                                timerModel.start()
+                                timerModel.isActive = true
+                                iconModel.setSystemIcon("pause.circle")
+                                ChimeManager.shared.play(.error)
+                            }
+                        }
+                        .store(in: &cancellables)
+                }
             }
         }
 
@@ -202,16 +232,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             timerModel.isActive = false
             iconModel.setSystemIcon("circle")
             ChimeManager.shared.play(.stop)
-
-            let attrTitle = NSAttributedString(
-                string: self.timerModel.formattedTimeMenuBar,
-                attributes: [
-                    .paragraphStyle: paragraph,
-                    .baselineOffset: -1
-                ]
-            )
-
-            self.statusItem.button?.attributedTitle = attrTitle
+            updateStatusBarTitle()
         } else {
             timerModel.start(remoteTime)
             timerModel.isActive = true
@@ -260,11 +281,95 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
+    enum QuickAction: String {
+        case startLast
+        case pause
+        case stop
+    }
+
+    func application(_ sender: NSApplication, open urls: [URL]) {
+        for url in urls {
+            guard url.scheme == "kimai-clock",
+                  let host = url.host,
+                  let action = QuickAction(rawValue: host) else { continue }
+            handleQuickAction(action)
+        }
+    }
+
+    // MARK: - Core Quick Action Logic
+
+    private func handleQuickAction(_ action: QuickAction) {
+        switch action {
+        case .pause:
+            guard timerModel.isActive == true else { return }
+
+            apiManager.stopActivity()
+                .sink { success in
+                    if success {
+                        self.timerModel.pause()
+                        self.timerModel.isActive = false
+                        self.iconModel.setSystemIcon("play.circle")
+                        ChimeManager.shared.play(.pause)
+                    } else {
+                        ChimeManager.shared.play(.error)
+                    }
+                }
+                .store(in: &cancellables)
+
+        case .stop:
+            guard timerModel.timer != 0 else { return }
+
+            apiManager.stopActivity()
+                .sink { success in
+                    if success {
+                        self.apiManager.activeActivity = nil
+                        self.timerModel.stop()
+                        self.timerModel.isActive = false
+                        self.iconModel.setSystemIcon("circle")
+                        ChimeManager.shared.play(.stop)
+                    } else {
+                        ChimeManager.shared.play(.error)
+                    }
+                }
+                .store(in: &cancellables)
+
+        case .startLast:
+            guard timerModel.isActive != true else { return }
+            guard let last = recentActivitiesManager.activities.first else { return }
+            apiManager.activeActivity = last
+
+            apiManager.startActivity()
+                .sink { id in
+                    if id != nil {
+                        self.timerModel.start()
+                        self.timerModel.isActive = true
+                        self.iconModel.setSystemIcon("pause.circle")
+                        self.recentActivitiesManager.add(self.apiManager.activeActivity)
+                        ChimeManager.shared.play(.start)
+                    } else {
+                        ChimeManager.shared.play(.error)
+                    }
+                }
+                .store(in: &cancellables)
+        }
+    }
+
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
         stopKimaiTask {
             NSApplication.shared.reply(toApplicationShouldTerminate: true)
         }
         return .terminateLater
+    }
+
+    private func updateStatusBarTitle() {
+        let attrTitle = NSAttributedString(
+            string: timerModel.formattedTimeMenuBar,
+            attributes: [
+                .paragraphStyle: paragraph,
+                .baselineOffset: -1
+            ]
+        )
+        statusItem.button?.attributedTitle = attrTitle
     }
 
     private func stopKimaiTask(_ completion: (() -> Void)? = nil) {

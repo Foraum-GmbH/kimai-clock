@@ -5,6 +5,7 @@ final class UserIdleManager {
     private var timer: Timer?
     private let idleThreshold: TimeInterval
     private let callback: () -> Void
+    private var hasTriggered = false
 
     init(threshold: TimeInterval, checkInterval: TimeInterval = 1.0, onIdle: @escaping () -> Void) {
         self.idleThreshold = threshold
@@ -17,6 +18,10 @@ final class UserIdleManager {
 
     deinit {
         timer?.invalidate()
+    }
+
+    func reset() {
+        hasTriggered = false
     }
 
     private func systemIdleTime() -> TimeInterval {
@@ -38,11 +43,20 @@ final class UserIdleManager {
             return 0
         }
 
-        return TimeInterval(idleNS) / 1_000_000_000 // ns → seconds
+        return TimeInterval(idleNS) / 1_000_000_000
     }
 
     private func checkIdle() {
-        if systemIdleTime() >= idleThreshold {
+        let idleTime = systemIdleTime()
+
+        if idleTime < idleThreshold {
+            hasTriggered = false
+            return
+        }
+
+        if idleTime >= idleThreshold && !hasTriggered {
+            print("Callback called")
+            hasTriggered = true
             callback()
         }
     }

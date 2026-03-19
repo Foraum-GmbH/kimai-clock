@@ -6,18 +6,23 @@ struct PopupView: View {
     @AppStorage("isSecure") private var isSecure: Bool?
     @AppStorage("apiToken") private var apiToken: String?
     @AppStorage("syncTimer") private var syncTimerOption: String = "sync_on_open"
+    @AppStorage("idleThreshold") private var idleThreshold: String = "15"
 
     @EnvironmentObject var iconModel: IconModel
     @EnvironmentObject var timerModel: TimerModel
     @EnvironmentObject var updateManager: UpdateManager
     @EnvironmentObject var apiManager: ApiManager
     @EnvironmentObject var recentActivitiesManager: RecentActivitiesManager
+    @EnvironmentObject var popoverState: PopoverState
 
     @StateObject private var subscriptionManager = SubscriptionManager()
-    @State private var openSection: String?
+    @State private var openSection: String? = "recent_activities"
     @State private var isHovering = false
     @State private var pulse = false
     @State private var searchValue = ""
+    @State private var showDescriptionAlert = false
+    @State private var timesheetDescription = ""
+    @State private var contextMenuActionTaken = false
 
     let closePopup: () -> Void
     let startRemoteTimerProcess: (Double) -> Void
@@ -119,11 +124,65 @@ struct PopupView: View {
                     isDanger: true,
                     isDisabled: timerModel.timer == 0
                 ))
+                .contextMenu {
+                    Button {
+                        contextMenuActionTaken = true
+                        timesheetDescription = ""
+                        showDescriptionAlert = true
+                    } label: {
+                        Label("Stop with description", systemImage: "stop.fill")
+                    }
+                    .disabled(timerModel.timer == 0)
+
+                    Button(role: .destructive) {
+                        contextMenuActionTaken = true
+                        apiManager.deleteTimesheet()
+                            .sink { success in
+                                if success {
+                                    apiManager.activeActivity = nil
+                                    timerModel.stop()
+                                    timerModel.isActive = false
+                                    iconModel.setSystemIcon("circle")
+                                    ChimeManager.shared.play(.stop)
+                                } else {
+                                    ChimeManager.shared.play(.error)
+                                }
+                            }
+                            .store(in: &subscriptionManager.cancellables)
+                    } label: {
+                        Label("Discard & delete", systemImage: "trash")
+                    }
+                    .disabled(timerModel.timer == 0)
+                }
+                .alert("Stop with description", isPresented: $showDescriptionAlert) {
+                    TextField("Description", text: $timesheetDescription)
+                    Button("Stop") {
+                        apiManager.updateTimesheetDescription(timesheetDescription)
+                            .flatMap { _ in apiManager.stopActivity() }
+                            .sink { success in
+                                if success {
+                                    apiManager.activeActivity = nil
+                                    timerModel.stop()
+                                    timerModel.isActive = false
+                                    iconModel.setSystemIcon("circle")
+                                    ChimeManager.shared.play(.stop)
+                                } else {
+                                    ChimeManager.shared.play(.error)
+                                    timerModel.isActive = true
+                                }
+                            }
+                            .store(in: &subscriptionManager.cancellables)
+                    }
+                    Button("Cancel", role: .cancel) {}
+                } message: {
+                    Text("Add a note before stopping the timer.")
+                }
 
                 Text(timerModel.formattedTimePopup)
                     .font(.system(.largeTitle, design: .monospaced))
                     .fontWeight(.bold)
                     .frame(minWidth: 80)
+                    .help(timerModel.formattedTimeStartedAt)
 
                 Spacer()
             }
@@ -140,50 +199,63 @@ struct PopupView: View {
 
             Divider()
 
-            if !recentActivitiesManager.activities.isEmpty {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text(NSLocalizedString("recent_activities", comment: ""))
-                        .font(.headline)
+            CollapsibleSection(
+                title: NSLocalizedString("activities", comment: ""),
+                isExpanded: Binding(
+                                get: { openSection == "recent_activities" },
+                                set: { openSection = $0 ? "recent_activities" : nil }
+                            )
+            ) {
+                VStack(alignment: .leading, spacing: 10) {
+                    Spacer(minLength: 2)
 
-                    ForEach(recentActivitiesManager.activities, id: \.uniqueId) { activity in
+                    if !recentActivitiesManager.activities.isEmpty {
+                        Text(NSLocalizedString("recent_activities", comment: ""))
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+
+                        ForEach(recentActivitiesManager.activities, id: \.uniqueId) { activity in
+                            ActivityCell(
+                                activity: activity,
+                                isActive: apiManager.activeActivity?.uniqueId == activity.uniqueId,
+                                canBeRemoved: true,
+                                setActive: {
+                                    apiManager.activeActivity = apiManager.activeActivity?.uniqueId == activity.uniqueId ? nil : activity
+                                },
+                                remove: {
+                                    recentActivitiesManager.clear(activity)
+                                }
+                            )
+                        }
+
+                        Divider()
+                    }
+
+                    Text(NSLocalizedString("search_activities", comment: ""))
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+
+                    TextField(NSLocalizedString("search_activities", comment: ""), text: $searchValue)
+                        .onChange(of: searchValue) { _, newValue in
+                            searchSubject.send(newValue)
+                        }
+                        .onAppear {
+                            apiManager.bindSearch(to: searchSubject.eraseToAnyPublisher())
+                        }
+
+                    ForEach(apiManager.searchResults, id: \.uniqueId) { activity in
                         ActivityCell(
                             activity: activity,
                             isActive: apiManager.activeActivity?.uniqueId == activity.uniqueId,
-                            canBeRemoved: true,
+                            canBeRemoved: false,
                             setActive: {
                                 apiManager.activeActivity = apiManager.activeActivity?.uniqueId == activity.uniqueId ? nil : activity
                             },
-                            remove: {
-                                recentActivitiesManager.clear(activity)
-                            }
+                            remove: nil
                         )
                     }
                 }
-
-                Divider()
             }
-
-            TextField(NSLocalizedString("search_activities", comment: ""), text: $searchValue)
-                .onChange(of: searchValue) { _, newValue in
-                    searchSubject.send(newValue)
-                }
-                .onAppear {
-                    apiManager.bindSearch(to: searchSubject.eraseToAnyPublisher())
-                }
-
-            ForEach(apiManager.searchResults, id: \.uniqueId) { activity in
-                ActivityCell(
-                    activity: activity,
-                    isActive: apiManager.activeActivity?.uniqueId == activity.uniqueId,
-                    canBeRemoved: false,
-                    setActive: {
-                        apiManager.activeActivity = apiManager.activeActivity?.uniqueId == activity.uniqueId ? nil : activity
-                    },
-                    remove: nil
-                )
-            }
-
-            Divider()
 
             CollapsibleSection(
                 title: NSLocalizedString("settings_title", comment: ""),
@@ -197,6 +269,7 @@ struct PopupView: View {
 
                     Text(NSLocalizedString("sync_server_timer", comment: ""))
                         .font(.subheadline)
+                        .foregroundStyle(.secondary)
                     Picker("", selection: $syncTimerOption) {
                         ForEach(options, id: \.self) { option in
                             Text(NSLocalizedString(option, comment: "")).tag(option)
@@ -209,16 +282,53 @@ struct PopupView: View {
                             apiManager.setupSyncTimer(startRemoteTimerProcess)
                         })
 
-                    Spacer(minLength: 4)
+                    Spacer(minLength: 2)
 
                     Text(NSLocalizedString("autostart_title", comment: ""))
                         .font(.subheadline)
+                        .foregroundStyle(.secondary)
                     LaunchAtLogin.Toggle(NSLocalizedString("autostart", comment: ""))
 
-                    Spacer(minLength: 4)
+                    Spacer(minLength: 2)
+
+                    Text(NSLocalizedString("idle_timer_label", comment: ""))
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                    ZStack(alignment: .trailing) {
+                        TextField(NSLocalizedString("idle_timer_placeholder", comment: ""), text: Binding(
+                                get: { idleThreshold },
+                                set: { newValue in
+                                    if newValue.isEmpty {
+                                        idleThreshold = "15"
+                                        return
+                                    }
+
+                                    let filtered = newValue.filter { $0.isNumber }
+                                    if let minutes = Int(filtered), minutes > 0, minutes <= 480 {
+                                        idleThreshold = String(minutes)
+                                    } else if filtered.isEmpty {
+                                        idleThreshold = "15"
+                                    }
+                                }
+                            )
+                        )
+                            .textFieldStyle(RoundedBorderTextFieldStyle())
+                            .onChange(of: idleThreshold) { _, _ in
+                                // store & update related routines ?
+                                //apiManager.getVersion().store(in: &subscriptionManager.cancellables)
+                            }
+
+                        Text(NSLocalizedString("minutes_suffix", comment: ""))
+                             .font(.subheadline)
+                             .foregroundStyle(.secondary)
+                             .padding(.trailing, 10)
+                     }
+
+                    Spacer(minLength: 2)
 
                     Text(NSLocalizedString("reset_action_title", comment: ""))
                         .font(.subheadline)
+                        .foregroundStyle(.secondary)
                     Button {
                         UserDefaults.standard.set(false, forKey: "appLaunchManager.dontShowAgain")
                         UserDefaults.standard.set(false, forKey: "userIdleManager.dontShowAgain")
@@ -234,6 +344,7 @@ struct PopupView: View {
 
                     Text(NSLocalizedString("server_url_label", comment: ""))
                         .font(.subheadline)
+                        .foregroundStyle(.secondary)
                     TextField(NSLocalizedString("server_url_placeholder", comment: ""), text: Binding(
                             get: { serverIP ?? "" },
                             set: { newValue in
@@ -261,10 +372,11 @@ struct PopupView: View {
                         .padding(.top, 2)
                     }
 
-                    Spacer(minLength: 4)
+                    Spacer(minLength: 2)
 
                     Text(NSLocalizedString("user_api_token_label", comment: ""))
                         .font(.subheadline)
+                        .foregroundStyle(.secondary)
                     SecureField(NSLocalizedString("user_api_token_placeholder", comment: ""), text: Binding(
                         get: { apiToken ?? "" },
                         set: { newValue in
@@ -283,7 +395,7 @@ struct PopupView: View {
                                 .store(in: &subscriptionManager.cancellables)
                         }
 
-                    Spacer(minLength: 4)
+                    Spacer(minLength: 2)
 
                     Text(NSLocalizedString("server_status", value: apiManager.serverVersion, comment: ""))
                         .font(.subheadline)
@@ -373,6 +485,15 @@ struct PopupView: View {
         }
         .padding(15)
         .frame(width: 320)
+        .onChange(of: popoverState.isPresented) { _, _ in
+            openSection = "recent_activities"
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSMenu.didEndTrackingNotification)) { _ in
+            if !contextMenuActionTaken {
+                closePopup()
+            }
+            contextMenuActionTaken = false
+        }
         .overlay(
             Button(action: {
                 apiManager.stopActivity()

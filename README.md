@@ -15,16 +15,16 @@ KimaiClock is a macOS menu bar application that integrates with [Kimai](https://
 
 ## ✨ Features
 
-- ⏱️ Start & stop timesheets from the menu bar  
-- 📊 View and resume recent tasks  
-- 🔔 Idle detection reminders  
-- 🔔 App launch reminders (VS Code, PhpStorm, Xcode, …)  
+- ⏱️ Start, pause & stop timesheets from the menu bar
+- 📝 Stop with a description — add a note right from the menu bar without opening Kimai
+- 📊 View and resume recent tasks
+- 🔔 App launch reminders (VS Code, PhpStorm, Xcode, …)
 - 📡 Automatically sync timesheets with Kimai server
-- 📓 English & German localization  
-- 🔒 Secure, Apple-notarized build  
-- ⚡ Lightweight & fast
-- 📦 No third party dependency
-- 🌙 Dark mode support  
+- 📥 Controllable via URL schemes (custom hotkeys via macOS Shortcuts, Alfred, Raycast, …)
+- 📓 English & German localization
+- 🔒 Secure, Apple-notarized build
+- ⚡ Lightweight — no third-party dependencies
+- 🌑 Dark mode support
 - 📨 Actively maintained
 
 ## 📋 Changelog
@@ -33,9 +33,27 @@ For a detailed list of changes, bug fixes, and new features in each release, see
 
 ## 🎛️ Menu Bar Button Actions
 
-- **Left click** → Open/close the view  
-- **Left long press** → Open your Kimai server page in the default browser  
+- **Left click** → Open/close the popup
+- **Left long press** → Open your Kimai server page in the default browser
 - **Right click** → Toggle play/pause for the active task
+
+## ✋ Stop Button Context Menu
+
+Right-clicking the stop button inside the popup opens a context menu with two additional actions:
+
+| Action | Description |
+|--------|-------------|
+| **Stop with description** | Opens a prompt to enter a note, then stops and saves the timesheet with that description |
+| **Discard & delete** | Stops the timer and deletes the timesheet entirely — useful when started by accident |
+
+## 🌙 Idle Detection
+
+KimaiClock detects when your Mac has been idle for a configurable period while a timer is running. When you return, an alert lets you decide what to do:
+
+- **Continue** — resume the timer as if nothing happened
+- **Stop** — stop and save the timesheet up to the point you went idle
+
+The idle threshold can be configured in Settings. A **"Don't show again"** checkbox is available if you prefer to manage this manually.
 
 ## 🚀 Installation
 
@@ -73,6 +91,41 @@ For a detailed list of changes, bug fixes, and new features in each release, see
 > - At least 30 forks  
 > - At least 30 watchers  
 > - At least 75 stars on GitHub
+
+## 🔗 URL Schemes & Keyboard Shortcuts
+
+KimaiClock supports URL schemes for automation and custom hotkey integration:
+
+| Action | URL | Description |
+|--------|-----|-------------|
+| **Pause** | `kimai-clock://pause` | Pause the currently running timer |
+| **Stop** | `kimai-clock://stop` | Stop and clear the active timer |
+| **Start Last** | `kimai-clock://startLast` | Start the most recent activity |
+
+### Usage Examples
+
+**Terminal:**
+```bash
+open "kimai-clock://pause"
+```
+
+**macOS Shortcuts:**
+1. Create a new Shortcut
+2. Add the **"Open URLs"** action
+3. Enter the url ( e.g. `kimai-clock://startLast` )
+4. Click the **ⓘ** icon in the top-right
+5. Select **"Add Keyboard Shortcut"** (e.g. `⌘⇧L`)
+
+The URL schemes also work with third-party automation tools like **Alfred**, **Raycast**, or **BetterTouchTool**.
+
+## 🖼️ Widgets
+
+> [!WARNING]
+> Widget support is currently work in progress and may have limited functionality.
+
+A desktop widget is in development that will show the current timer state and elapsed time directly on your desktop or in the menu bar notification area. Available as a lock screen and home screen widget on supported macOS versions.
+
+
 
 ## 🤝 Contributors
 <a href="https://github.com/fabian-rohr"><img src="https://images.weserv.nl/?url=avatars.githubusercontent.com/u/20979750&w=300&h=300&fit=cover&mask=circle" width="50" height="50" style="border-radius:50%"/></a>

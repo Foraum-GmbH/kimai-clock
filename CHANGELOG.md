@@ -2,6 +2,19 @@
 
 All notable changes to KimaiClock will be documented in this file.
 
+## [1.2.0] - 2026-03-19
+
+### Added
+- Idle time detection with configurable threshold and "Don't show again" option (#7 by @steffenschmidt)
+- Stop with description via context menu on the stop button (#8 by @steffenschmidt)
+- Discard & delete option to stop the timer and remove the current timesheet entirely
+- "Started at" tooltip on the timer label in the popup
+- URL scheme support ( -> enables Keyboard Shortcuts integration ) for start, pause and stop actions
+
+### Work in progress
+- Desktop widget (70% done)
+- Manual time entry view
+
 ## [1.1.5] - 2026-01-27
 
 ### Added

@@ -21,6 +21,40 @@
         }
       }
     },
+    "activities" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aufgaben"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Activities"
+          }
+        }
+      }
+    },
+    "Add a note before stopping the timer." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Füge eine Notiz hinzu, bevor du den Timer stoppst."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add a note before stopping the timer."
+          }
+        }
+      }
+    },
     "autostart" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -71,6 +105,9 @@
         }
       }
     },
+    "Cancel" : {
+
+    },
     "copyright_text" : {
       "localizations" : {
         "de" : {
@@ -83,6 +120,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "© 2026 Foraum GmbH"
+          }
+        }
+      }
+    },
+    "Description" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Beschreibung"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Description"
+          }
+        }
+      }
+    },
+    "Discard & delete" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verwerfen & löschen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Discard & delete"
           }
         }
       }
@@ -121,6 +192,125 @@
         }
       }
     },
+    "idle_alert_message" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dein Timer lief weiter, während dein Mac inaktiv war. Du kannst die Aufzeichnung fortsetzen oder den Timer stoppen, um die aktuelle Sitzung zu beenden."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your timer kept running while your Mac was idle. You can continue tracking from where you left off, or stop the timer to end the current session."
+          }
+        }
+      }
+    },
+    "idle_alert_title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Du warst %lld Minuten inaktiv"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You've been idle for %lld minutes"
+          }
+        }
+      }
+    },
+    "idle_continue_keep" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Weiter"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Continue"
+          }
+        }
+      }
+    },
+    "idle_dont_show_again" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nicht mehr anzeigen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Don't show again"
+          }
+        }
+      }
+    },
+    "idle_stop_keep" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stoppen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stop"
+          }
+        }
+      }
+    },
+    "idle_timer_label" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Erinnerung bei Inaktivität nach"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Idle reminder after"
+          }
+        }
+      }
+    },
+    "idle_timer_placeholder" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Minuten Inaktivität (1 bis 480)"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Minutes of Inactivity (1 to 480)"
+          }
+        }
+      }
+    },
     "insecure_connection_warning" : {
       "localizations" : {
         "de" : {
@@ -137,13 +327,6 @@
         }
       }
     },
-    "Key" : {
-      "extractionState" : "manual",
-      "shouldTranslate" : false
-    },
-    "Key 1" : {
-      "extractionState" : "manual"
-    },
     "kimai_button" : {
       "localizations" : {
         "de" : {
@@ -156,6 +339,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Kimai.org"
+          }
+        }
+      }
+    },
+    "minutes_suffix" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Min."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "min"
           }
         }
       }
@@ -366,6 +566,40 @@
         }
       }
     },
+    "Stop" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stoppen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stop"
+          }
+        }
+      }
+    },
+    "Stop with description" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mit Beschreibung stoppen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stop with description"
+          }
+        }
+      }
+    },
     "sync_every_5_min" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -446,6 +680,39 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Fetch active server timer:"
+          }
+        }
+      }
+    },
+    "timer_not_started" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kein aktiver Timer"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No active timer"
+          }
+        }
+      }
+    },
+    "timer_started_at" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gestartet um: %@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Started at: %@"
           }
         }
       }

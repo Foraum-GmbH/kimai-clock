@@ -1,11 +1,23 @@
 internal import Combine
+import WidgetKit
 import SwiftUI
 
 @MainActor
 class TimerModel: ObservableObject {
-    @Published var timer: TimeInterval = 0
-    @Published var isActive: Bool?
+    @Published var timer: TimeInterval = 0 {
+        didSet { syncToWidget() }
+    }
+    
+    @Published var isActive: Bool? {
+        didSet { syncToWidget() }
+    }
+
     private var cancellable: Timer?
+
+    private func syncToWidget() {
+        WidgetSync.save(timer: timer, isActive: isActive)
+        WidgetCenter.shared.reloadAllTimelines()
+    }
 
     public func start(_ remoteTime: Double? = nil) {
         if let remoteTime {
@@ -39,6 +51,19 @@ class TimerModel: ObservableObject {
         let minutes = (Int(timer) % 3600) / 60
         let seconds = Int(timer) % 60
         return String(format: "%02d:%02d:%02d", hours, minutes, seconds)
+    }
+
+    var formattedTimeStartedAt: String {
+        if ( timer == 0 ) {
+            return NSLocalizedString("timer_not_started", comment: "")
+        } else {
+            let startTime = Date(timeIntervalSinceNow: -timer)
+            let formatter = DateFormatter()
+            formatter.dateStyle = .none
+            formatter.timeStyle = .medium
+            let timeString = formatter.string(from: startTime)
+            return String(format: NSLocalizedString("timer_started_at", comment: ""), timeString)
+        }
     }
 
     var formattedTimeMenuBar: String {
