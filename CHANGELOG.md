@@ -2,6 +2,24 @@
 
 All notable changes to KimaiClock will be documented in this file.
 
+## [1.5.5] - 2026-04-07
+
+### Added
+- "Edit description" context menu action on the play/pause and stop buttons — allows updating the running timer's description without stopping it
+
+---
+
+## [1.5.3 - 1.5.4] - 2026-03-19
+
+### Internal
+- Overhauled CI/CD release pipeline: semver enforcement, auto version bump from tag, rollback on failure, notarization timeout, concurrency guard
+- Added TruffleHog secret scanning (workflow + pre-commit hook)
+- Updated all GitHub Actions to latest versions
+- Added `.editorconfig`, `CODEOWNERS`, and Dependabot for Actions
+- Completed 1 issue and 3 pull requests
+
+---
+
 ## [1.5.2] - 2026-03-19
 
 ### Added

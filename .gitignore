@@ -28,4 +28,5 @@ fastlane/Preview.html
 *.env
 *.secrets
 CLAUDE.md
+TASK.md
 .claude/

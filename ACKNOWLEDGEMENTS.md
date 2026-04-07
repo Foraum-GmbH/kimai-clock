@@ -4,14 +4,6 @@ We gratefully acknowledge the following open source projects that made this app 
 
 ---
 
-## In-App Usage
-These libraries are included in or directly used by the application:
-
-- [LaunchAtLogin-Modern](https://github.com/sindresorhus/LaunchAtLogin-Modern) (MIT License)  
-  Used to optionally start the app automatically after login.  
-
----
-
 ## Build & CI/CD Tooling
 These tools are used only during the build, packaging, or release process, and are not included in the distributed application:
 
