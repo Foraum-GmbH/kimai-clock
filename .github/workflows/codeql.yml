@@ -26,7 +26,7 @@ jobs:
         - language: actions
           build-mode: none
         - language: swift
-          build-mode: autobuild
+          build-mode: manual
 
     steps:
     - name: Checkout repository
@@ -37,6 +37,16 @@ jobs:
       with:
         languages: ${{ matrix.language }}
         build-mode: ${{ matrix.build-mode }}
+
+    - if: matrix.build-mode == 'manual'
+      name: Build Swift project
+      run: |
+        xcodebuild \
+          -project KimaiClock.xcodeproj \
+          -scheme KimaiClock \
+          -destination "generic/platform=macOS" \
+          CODE_SIGNING_ALLOWED=NO \
+          build
 
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v4
