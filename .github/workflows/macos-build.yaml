@@ -20,13 +20,58 @@ env:
 jobs:
   build-and-release:
     runs-on: macos-26
+    concurrency:
+      group: release
+      cancel-in-progress: false
     
     steps:
+    - name: Validate tag
+      run: |
+        TAG_NAME="${GITHUB_REF#refs/tags/}"
+
+        delete_tag() {
+          echo "Deleting invalid tag '$TAG_NAME' from remote..."
+          gh api "repos/Foraum-GmbH/kimai-clock/git/refs/tags/$TAG_NAME" --method DELETE
+        }
+
+        # Require v prefix for consistent tag formatting
+        if ! [[ "$TAG_NAME" == v* ]]; then
+          echo "Error: tag must start with 'v' (e.g. v1.2.3), got '$TAG_NAME'"
+          delete_tag
+          exit 1
+        fi
+
+        VERSION="${TAG_NAME#v}"
+
+        # Validate semver format (X.Y.Z digits only)
+        if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+          echo "Error: '$TAG_NAME' is not valid semver (expected vX.Y.Z)"
+          delete_tag
+          exit 1
+        fi
+
+        # Ensure new version is strictly greater than the current latest release
+        LATEST=$(gh release view --repo Foraum-GmbH/kimai-clock --json tagName --jq .tagName 2>/dev/null | sed 's/^v//' || echo "0.0.0")
+        echo "Current latest release: $LATEST — new version: $VERSION"
+        if ! python3 -c "a=tuple(int(x) for x in '$LATEST'.split('.'));b=tuple(int(x) for x in '$VERSION'.split('.'));exit(0 if b>a else 1)"; then
+          echo "Error: version $VERSION is not greater than current latest $LATEST"
+          delete_tag
+          exit 1
+        fi
+      env:
+        GH_TOKEN: ${{ secrets.GH_PAT }}
+
     - name: Checkout repository
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
+
+    - name: Scan for secrets
+      uses: trufflesecurity/trufflehog@v3.94.2
+      with:
+        path: ./
+        only-verified: true
 
     - name: Setup Xcode
-      uses: maxim-lobanov/setup-xcode@v1
+      uses: maxim-lobanov/setup-xcode@v1.7.0
       with:
         xcode-version: latest-stable
         
@@ -34,7 +79,7 @@ jobs:
       run: brew install create-dmg
       
     - name: Import Code-Signing Certificates
-      uses: Apple-Actions/import-codesign-certs@v2
+      uses: Apple-Actions/import-codesign-certs@v6.0.0
       with:
         p12-file-base64: ${{ secrets.CERTIFICATES_P12 }}
         p12-password: ${{ secrets.CERTIFICATES_P12_PASSWORD }}
@@ -118,21 +163,6 @@ jobs:
           -exportPath export \
           -exportOptionsPlist ExportOptions.plist
 
-    - name: Prepare Notarization
-      run: |
-        # Debug: Check what .app files exist
-        echo "=== Looking for .app files to notarize ==="
-        find export/ -name "*.app" -type d
-
-        # Find the actual .app file (it might not be exactly $APP_NAME.app)
-        APP_FILE=$(find export/ -name "*.app" -type d | head -1)
-        if [ -z "$APP_FILE" ]; then
-          echo "Error: No .app file found in export directory"
-          exit 1
-        fi
-
-        echo "Found app file: $APP_FILE"
-
     - name: Create DMG
       run: |
         # Find the actual .app file
@@ -175,6 +205,7 @@ jobs:
           --key AuthKey.p8 \
           --key-id "${{ secrets.APPLE_API_KEY_ID }}" \
           --issuer "${{ secrets.APPLE_API_ISSUER }}" \
+          --timeout 30m \
           --wait
           
         # Staple the notarization to DMG
@@ -185,20 +216,24 @@ jobs:
         # Verify the notarization was successful
         spctl --assess --type open --context context:primary-signature "$APP_NAME.dmg"
 
+    - name: Compute DMG SHA256
+      id: dmg_info
+      run: |
+        SHA256=$(shasum -a 256 "$APP_NAME.dmg" | awk '{print $1}')
+        echo "sha256=$SHA256" >> $GITHUB_OUTPUT
+        echo "SHA256: $SHA256"
+
     - name: Get release info
       id: release_info
       run: |
-        if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
-          TAG_NAME="${GITHUB_REF#refs/tags/}"
-          echo "tag_name=$TAG_NAME" >> $GITHUB_OUTPUT
-          echo "release_name=$TAG_NAME" >> $GITHUB_OUTPUT
-        else
-          echo "tag_name=latest" >> $GITHUB_OUTPUT
-          echo "release_name=Latest Build" >> $GITHUB_OUTPUT
-        fi
+        VERSION="${GITHUB_REF#refs/tags/}"
+        VERSION="${VERSION#v}"
+        echo "tag_name=v$VERSION" >> $GITHUB_OUTPUT
+        echo "release_name=v$VERSION" >> $GITHUB_OUTPUT
+        echo "version=$VERSION" >> $GITHUB_OUTPUT
         
     - name: Create Release
-      uses: softprops/action-gh-release@v1
+      uses: softprops/action-gh-release@v2.6.1
       with:
         tag_name: ${{ steps.release_info.outputs.tag_name }}
         name: ${{ steps.release_info.outputs.release_name }}
@@ -208,12 +243,71 @@ jobs:
           ${{ env.APP_NAME }}.dmg
         body: |
           ## Installation
-          
+
           1. Download the DMG file
           2. Double-click to mount the disk image
           3. Drag the app to your Applications folder
-          
+
           **Note**: This app is signed and notarized by Apple.
       env:
         GITHUB_TOKEN: ${{ secrets.GH_PAT }}
 
+    - name: Update Homebrew cask in homebrew-foraum
+      run: |
+        VERSION="${{ steps.release_info.outputs.version }}"
+        SHA256="${{ steps.dmg_info.outputs.sha256 }}"
+
+        CASK_CONTENT=$(printf 'cask "kimai-clock" do\n  version "%s"\n  sha256 "%s"\n  url "https://github.com/Foraum-GmbH/kimai-clock/releases/download/v#{version}/KimaiClock.dmg"\n  name "KimaiClock"\n  desc "Track and manage Kimai 2 time entries from the menu bar"\n  homepage "https://github.com/Foraum-GmbH/kimai-clock"\n  app "KimaiClock.app"\nend\n' "$VERSION" "$SHA256")
+        CURRENT_SHA=$(gh api repos/Foraum-GmbH/homebrew-foraum/contents/Casks/kimai-clock.rb --jq .sha)
+
+        gh api repos/Foraum-GmbH/homebrew-foraum/contents/Casks/kimai-clock.rb \
+          --method PUT \
+          -f message="chore: bump kimai-clock to $VERSION" \
+          -f content="$(echo "$CASK_CONTENT" | base64 | tr -d '\n')" \
+          -f sha="$CURRENT_SHA"
+      env:
+        GH_TOKEN: ${{ secrets.GH_PAT }}
+
+    - name: Clean up local Secrets
+      if: always()
+      run: rm -f AuthKey.p8
+
+    - name: Rollback release on failure
+      if: failure()
+      run: |
+        VERSION="${{ steps.release_info.outputs.version }}"
+        if [ -z "$VERSION" ]; then
+          echo "Version not set, nothing to roll back."
+          exit 0
+        fi
+        echo "Rolling back release v$VERSION..."
+        gh release delete "v$VERSION" --repo Foraum-GmbH/kimai-clock --yes 2>/dev/null && echo "Release deleted." || echo "Release not found, skipping."
+        gh api "repos/Foraum-GmbH/kimai-clock/git/refs/tags/v$VERSION" --method DELETE 2>/dev/null && echo "Tag deleted." || echo "Tag not found, skipping."
+      env:
+        GH_TOKEN: ${{ secrets.GH_PAT }}
+
+    - name: Job summary
+      if: always()
+      run: |
+        VERSION="${{ steps.release_info.outputs.version }}"
+        SHA256="${{ steps.dmg_info.outputs.sha256 }}"
+        if [ -n "$VERSION" ]; then
+          RELEASE_URL="https://github.com/Foraum-GmbH/kimai-clock/releases/tag/v$VERSION"
+          printf '## Release summary\n\n| | |\n|---|---|\n| **Version** | `v%s` |\n| **SHA256** | `%s` |\n| **Release** | %s |\n' \
+            "$VERSION" "$SHA256" "$RELEASE_URL" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "## Release failed — no version was produced." >> $GITHUB_STEP_SUMMARY
+        fi
+
+    - name: Notify kimai/kimai of new release
+      if: false
+      run: |
+        VERSION="${{ steps.release_info.outputs.version }}"
+        RELEASE_URL="https://github.com/Foraum-GmbH/kimai-clock/releases/tag/v$VERSION"
+        BODY=$(printf '## KimaiClock %s is available\n\nKimaiClock (https://github.com/Foraum-GmbH/kimai-clock) — a macOS menu bar app for tracking Kimai time entries — has been updated to **%s**.\n\n- **Release:** %s\n\nPlease update the listing in your marketplace/addon directory if applicable.' "$VERSION" "$VERSION" "$RELEASE_URL")
+        gh issue create \
+          --repo kimai/kimai \
+          --title "KimaiClock $VERSION released" \
+          --body "$BODY"
+      env:
+        GH_TOKEN: ${{ secrets.GH_PAT }}

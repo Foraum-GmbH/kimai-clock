@@ -1,0 +1,5 @@
+repos:
+  - repo: https://github.com/trufflesecurity/trufflehog
+    rev: v3.94.2
+    hooks:
+      - id: trufflehog
