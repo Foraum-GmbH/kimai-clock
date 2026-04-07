@@ -64,6 +64,17 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v6
 
+    - name: Bump version and build number
+      id: version_bump
+      run: |
+        VERSION="${GITHUB_REF#refs/tags/v}"
+        CURRENT_BUILD=$(grep -m1 "CURRENT_PROJECT_VERSION" KimaiClock.xcodeproj/project.pbxproj | grep -o '[0-9]*')
+        NEW_BUILD=$((CURRENT_BUILD + 1))
+        echo "Bumping to version $VERSION, build $NEW_BUILD"
+        sed -i '' "s/MARKETING_VERSION = [^;]*/MARKETING_VERSION = $VERSION/" KimaiClock.xcodeproj/project.pbxproj
+        sed -i '' "s/CURRENT_PROJECT_VERSION = [0-9]*/CURRENT_PROJECT_VERSION = $NEW_BUILD/" KimaiClock.xcodeproj/project.pbxproj
+        echo "new_build=$NEW_BUILD" >> $GITHUB_OUTPUT
+
     - name: Scan for secrets
       uses: trufflesecurity/trufflehog@v3.94.2
       with:
@@ -251,6 +262,19 @@ jobs:
           **Note**: This app is signed and notarized by Apple.
       env:
         GITHUB_TOKEN: ${{ secrets.GH_PAT }}
+
+    - name: Commit version bump to main
+      run: |
+        VERSION="${{ steps.release_info.outputs.version }}"
+        NEW_BUILD="${{ steps.version_bump.outputs.new_build }}"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+        git config user.name "github-actions[bot]"
+        git remote set-url origin "https://x-access-token:$GH_TOKEN@github.com/Foraum-GmbH/kimai-clock.git"
+        git add KimaiClock.xcodeproj/project.pbxproj
+        git commit -m "chore: bump version to $VERSION (build $NEW_BUILD)"
+        git push origin HEAD:main
+      env:
+        GH_TOKEN: ${{ secrets.GH_PAT }}
 
     - name: Update Homebrew cask in homebrew-foraum
       run: |
