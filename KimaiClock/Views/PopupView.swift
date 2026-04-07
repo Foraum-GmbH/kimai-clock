@@ -21,6 +21,7 @@ struct PopupView: View {
     @State private var pulse = false
     @State private var searchValue = ""
     @State private var showDescriptionAlert = false
+    @State private var showEditDescriptionAlert = false
     @State private var timesheetDescription = ""
     @State private var contextMenuActionTaken = false
 
@@ -98,6 +99,16 @@ struct PopupView: View {
                     isProminent: !(timerModel.isActive ?? false),
                     isDisabled: apiManager.activeActivity == nil
                 ))
+                .contextMenu {
+                    Button {
+                        contextMenuActionTaken = true
+                        timesheetDescription = ""
+                        showEditDescriptionAlert = true
+                    } label: {
+                        Label("Edit description", systemImage: "pencil")
+                    }
+                    .disabled(timerModel.timer == 0)
+                }
 
                 Button(action: {
                     apiManager.stopActivity()
@@ -125,6 +136,15 @@ struct PopupView: View {
                     isDisabled: timerModel.timer == 0
                 ))
                 .contextMenu {
+                    Button {
+                        contextMenuActionTaken = true
+                        timesheetDescription = ""
+                        showEditDescriptionAlert = true
+                    } label: {
+                        Label("Edit description", systemImage: "pencil")
+                    }
+                    .disabled(timerModel.timer == 0)
+
                     Button {
                         contextMenuActionTaken = true
                         timesheetDescription = ""
@@ -176,6 +196,21 @@ struct PopupView: View {
                     Button("Cancel", role: .cancel) {}
                 } message: {
                     Text("Add a note before stopping the timer.")
+                }
+                .alert("Edit description", isPresented: $showEditDescriptionAlert) {
+                    TextField("Description", text: $timesheetDescription)
+                    Button("Save") {
+                        apiManager.updateTimesheetDescription(timesheetDescription)
+                            .sink { success in
+                                if !success {
+                                    ChimeManager.shared.play(.error)
+                                }
+                            }
+                            .store(in: &subscriptionManager.cancellables)
+                    }
+                    Button("Cancel", role: .cancel) {}
+                } message: {
+                    Text("Update the description for the running timer.")
                 }
 
                 Text(timerModel.formattedTimePopup)
