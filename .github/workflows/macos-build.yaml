@@ -244,7 +244,7 @@ jobs:
         echo "version=$VERSION" >> $GITHUB_OUTPUT
         
     - name: Create Release
-      uses: softprops/action-gh-release@v2.6.1
+      uses: softprops/action-gh-release@v3.0.0
       with:
         tag_name: ${{ steps.release_info.outputs.tag_name }}
         name: ${{ steps.release_info.outputs.release_name }}
