@@ -62,7 +62,7 @@ jobs:
         GH_TOKEN: ${{ secrets.GH_PAT }}
 
     - name: Checkout repository
-      uses: actions/checkout@v6
+      uses: actions/checkout@v7
 
     - name: Bump version and build number
       id: version_bump
