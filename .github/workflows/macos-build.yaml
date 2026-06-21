@@ -76,7 +76,7 @@ jobs:
         echo "new_build=$NEW_BUILD" >> $GITHUB_OUTPUT
 
     - name: Scan for secrets
-      uses: trufflesecurity/trufflehog@v3.95.5
+      uses: trufflesecurity/trufflehog@v3.95.6
       with:
         path: ./
         only-verified: true
