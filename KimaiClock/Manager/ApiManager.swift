@@ -485,33 +485,6 @@ class ApiManager: ObservableObject {
             .eraseToAnyPublisher()
     }
 
-    func adjustTimesheetBegin(to newBegin: Date) -> AnyPublisher<Bool, Never> {
-        guard let id = activeTimesheetId,
-              let baseURL = serverIP,
-              let url = URL(string: "\(baseURL)/api/timesheets/\(id)") else {
-            return Just(false).eraseToAnyPublisher()
-        }
-
-        var request = URLRequest(url: url)
-        request.httpMethod = "PATCH"
-        request.addValue("Bearer \(apiToken ?? "")", forHTTPHeaderField: "Authorization")
-        request.addValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.addValue("application/json", forHTTPHeaderField: "Accept")
-        request.addValue("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36 KimaiClock",
-                         forHTTPHeaderField: "User-Agent")
-
-        let body: [String: Any] = [
-            "begin": secondsFormatter.string(from: newBegin)
-        ]
-        request.httpBody = try? JSONSerialization.data(withJSONObject: body)
-
-        return session.dataTaskPublisher(for: request)
-            .receive(on: DispatchQueue.main)
-            .map { ($0.response as? HTTPURLResponse)?.statusCode == 200 }
-            .replaceError(with: false)
-            .eraseToAnyPublisher()
-    }
-
     func stopActivityAt(_ date: Date) -> AnyPublisher<Bool, Never> {
         guard let id = activeTimesheetId,
               let activity = activeActivity,

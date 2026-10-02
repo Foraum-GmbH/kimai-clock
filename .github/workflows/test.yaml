@@ -20,4 +20,4 @@ jobs:
 
       - name: Run Tests
         run: |
-          xcodebuild -project KimaiClock.xcodeproj -scheme KimaiClock -destination "generic/platform=macOS" CODE_SIGNING_ALLOWED=NO test
+          xcodebuild -project KimaiClock.xcodeproj -scheme KimaiClock -destination "platform=macOS" CODE_SIGNING_ALLOWED=NO test

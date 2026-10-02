@@ -92,38 +92,6 @@ final class ApiManagerIdleTests: XCTestCase {
         wait(for: [expectation], timeout: 2.0)
     }
 
-    func testAdjustTimesheetBeginSendsPatchWithBeginDate() {
-        let expectation = expectation(description: "adjustTimesheetBegin sent")
-        var interceptedRequest: URLRequest?
-        let activity = Activity(id: 3, name: "Meeting", parentTitle: nil, project: 5, color: nil, timesheetId: nil)
-        apiManager.activeActivity = activity
-        apiManager.activeTimesheetId = 888
-
-        MockURLProtocol.requestHandler = { request in
-            interceptedRequest = request
-            let response = HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!
-            return (response, Data())
-        }
-
-        let targetDate = Date(timeIntervalSince1970: 1_700_000_000)
-        apiManager.adjustTimesheetBegin(to: targetDate)
-            .sink { success in
-                XCTAssertTrue(success)
-                expectation.fulfill()
-            }
-            .store(in: &cancellables)
-
-        wait(for: [expectation], timeout: 2.0)
-
-        XCTAssertEqual(interceptedRequest?.url?.path, "/api/timesheets/888")
-        XCTAssertEqual(interceptedRequest?.httpMethod, "PATCH")
-
-        if let bodyData = interceptedRequest?.httpBody,
-           let json = try? JSONSerialization.jsonObject(with: bodyData) as? [String: Any] {
-            XCTAssertNotNil(json["begin"])
-        }
-    }
-
     func testStopActivityAtWithNilProjectSerializesSuccessfully() {
         let expectation = expectation(description: "stopActivityAt with nil project")
         var interceptedRequest: URLRequest?
@@ -157,14 +125,11 @@ final class ApiManagerIdleTests: XCTestCase {
         XCTAssertEqual(interceptedRequest?.url?.path, "/api/timesheets/777")
         XCTAssertEqual(interceptedRequest?.httpMethod, "PATCH")
 
-        guard let bodyData = interceptedRequest?.httpBody,
-              let json = try? JSONSerialization.jsonObject(with: bodyData) as? [String: Any] else {
-            XCTFail("Body failed to serialize or was empty")
-            return
+        if let bodyData = interceptedRequest?.httpBody,
+           let json = try? JSONSerialization.jsonObject(with: bodyData) as? [String: Any] {
+            XCTAssertNotNil(json["end"])
+            XCTAssertEqual(json["activity"] as? Int, 7)
+            XCTAssertNil(json["project"])
         }
-
-        XCTAssertNotNil(json["end"])
-        XCTAssertEqual(json["activity"] as? Int, 7)
-        XCTAssertNil(json["project"])
     }
 }

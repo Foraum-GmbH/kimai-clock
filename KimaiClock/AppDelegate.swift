@@ -236,15 +236,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
                 switch selectedAction {
                 case .continueTimer:
-                    let totalIdleDuration = Date().timeIntervalSince(idleStart)
-                    let newBegin = Date().addingTimeInterval(-self.timerModel.timer)
-                    self.apiManager.adjustTimesheetBegin(to: newBegin)
-                        .sink { [weak self] success in
-                            if !success {
-                                self?.apiManager.totalIdleOffset += totalIdleDuration
-                            }
-                        }
-                        .store(in: &self.cancellables)
+                    self.apiManager.totalIdleOffset += Date().timeIntervalSince(idleStart)
                     self.timerModel.start()
                     self.timerModel.isActive = true
                     self.iconModel.setSystemIcon("pause.circle")
