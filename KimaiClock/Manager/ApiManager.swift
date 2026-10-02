@@ -94,6 +94,7 @@ class ApiManager: ObservableObject {
 
     @Published var searchResults: [Activity] = []
     @Published var serverVersion: String = "..."
+    @Published var pendingDescription: String = ""
     @Published var activeActivity: Activity? {
         didSet {
             syncToWidget()
@@ -339,12 +340,15 @@ class ApiManager: ObservableObject {
             .eraseToAnyPublisher()
     }
 
-    func startActivity() -> AnyPublisher<Int?, Never> {
+    func startActivity(description: String? = nil) -> AnyPublisher<Int?, Never> {
         guard let activeActivity,
               let baseURL = serverIP,
               let url = URL(string: "\(baseURL)/api/timesheets") else {
             return Just(nil).eraseToAnyPublisher()
         }
+
+        let trimmedDescription = (description ?? pendingDescription)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
 
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
@@ -354,10 +358,13 @@ class ApiManager: ObservableObject {
         request.addValue("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36 KimaiClock",
                          forHTTPHeaderField: "User-Agent")
 
-        let body: [String: Any?] = [
+        var body: [String: Any?] = [
             "project": activeActivity.project,
             "activity": activeActivity.id
         ]
+        if !trimmedDescription.isEmpty {
+            body["description"] = trimmedDescription
+        }
         request.httpBody = try? JSONSerialization.data(withJSONObject: body)
 
         return session.dataTaskPublisher(for: request)
@@ -373,6 +380,12 @@ class ApiManager: ObservableObject {
             }
             .replaceError(with: nil)
             .receive(on: RunLoop.main)
+            .map { [weak self] id -> Int? in
+                if id != nil {
+                    self?.pendingDescription = ""
+                }
+                return id
+            }
             .eraseToAnyPublisher()
     }
 

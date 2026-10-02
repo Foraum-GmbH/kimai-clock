@@ -266,6 +266,16 @@ struct PopupView: View {
                         Divider()
                     }
 
+                    Text(NSLocalizedString("description_placeholder", comment: ""))
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+
+                    TextField(NSLocalizedString("description_placeholder", comment: ""), text: $apiManager.pendingDescription)
+                        .textFieldStyle(RoundedBorderTextFieldStyle())
+                        .disabled(timerModel.timer != 0 || apiManager.activeActivity == nil)
+
+                    Spacer(minLength: 2)
+
                     Text(NSLocalizedString("search_activities", comment: ""))
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
