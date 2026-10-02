@@ -79,7 +79,7 @@ jobs:
       uses: trufflesecurity/trufflehog@v3.97.9
       with:
         path: ./
-        only-verified: true
+        extra_args: --only-verified
 
     - name: Setup Xcode
       uses: maxim-lobanov/setup-xcode@v1.7.0
