@@ -10,7 +10,7 @@
 import Foundation
 
 enum WidgetSync {
-    static let defaults = UserDefaults(suiteName: "group.de.foraum.KimaiClock")!
+    nonisolated(unsafe) static let defaults = UserDefaults(suiteName: "group.de.foraum.KimaiClock")!
 
     private static let activityKey = "activity"
     private static let timerKey = "timer"

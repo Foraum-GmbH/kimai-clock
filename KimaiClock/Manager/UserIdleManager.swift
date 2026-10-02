@@ -2,17 +2,19 @@ import Foundation
 import IOKit
 
 final class UserIdleManager {
-    private var timer: Timer?
+    nonisolated(unsafe) private var timer: Timer?
     private let idleThreshold: TimeInterval
-    private let callback: () -> Void
+    private let callback: (Date, Date) -> Void
     private var hasTriggered = false
 
-    init(threshold: TimeInterval, checkInterval: TimeInterval = 1.0, onIdle: @escaping () -> Void) {
+    init(threshold: TimeInterval, checkInterval: TimeInterval = 1.0, onIdle: @escaping (Date, Date) -> Void) {
         self.idleThreshold = threshold
         self.callback = onIdle
 
         timer = Timer.scheduledTimer(withTimeInterval: checkInterval, repeats: true) { [weak self] _ in
-            self?.checkIdle()
+            Task { @MainActor [weak self] in
+                self?.checkIdle()
+            }
         }
     }
 
@@ -22,6 +24,11 @@ final class UserIdleManager {
 
     func reset() {
         hasTriggered = false
+    }
+
+    func stop() {
+        timer?.invalidate()
+        timer = nil
     }
 
     private func systemIdleTime() -> TimeInterval {
@@ -55,9 +62,11 @@ final class UserIdleManager {
         }
 
         if idleTime >= idleThreshold && !hasTriggered {
-            print("Callback called")
             hasTriggered = true
-            callback()
+            let now = Date()
+            let idleStart = now.addingTimeInterval(-idleTime)
+            let idleEnd = now
+            callback(idleStart, idleEnd)
         }
     }
 }

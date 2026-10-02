@@ -108,6 +108,9 @@
     "Cancel" : {
 
     },
+    "Collapsed" : {
+
+    },
     "copyright_text" : {
       "localizations" : {
         "de" : {
@@ -158,6 +161,23 @@
         }
       }
     },
+    "Discard & delete" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verwerfen & löschen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Discard & delete"
+          }
+        }
+      }
+    },
     "Edit description" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -175,22 +195,8 @@
         }
       }
     },
-    "Discard & delete" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Verwerfen & löschen"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Discard & delete"
-          }
-        }
-      }
+    "Expanded" : {
+
     },
     "feedback_button" : {
       "extractionState" : "manual",
@@ -222,6 +228,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "GitHub"
+          }
+        }
+      }
+    },
+    "idle_absence_duration" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Du warst %@ abwesend"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You were away for %@"
           }
         }
       }
@@ -445,6 +468,12 @@
         }
       }
     },
+    "Pause timer" : {
+
+    },
+    "Quit KimaiClock" : {
+
+    },
     "recent_activities" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -508,6 +537,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Reset all Notices"
+          }
+        }
+      }
+    },
+    "Save" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Speichern"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Save"
           }
         }
       }
@@ -600,22 +646,8 @@
         }
       }
     },
-    "Save" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Speichern"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Save"
-          }
-        }
-      }
+    "Start timer" : {
+
     },
     "Stop" : {
       "extractionState" : "manual",
@@ -634,22 +666,8 @@
         }
       }
     },
-    "Update the description for the running timer." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Aktualisiere die Beschreibung für den laufenden Timer."
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Update the description for the running timer."
-          }
-        }
-      }
+    "Stop timer" : {
+
     },
     "Stop with description" : {
       "extractionState" : "manual",
@@ -781,6 +799,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Started at: %@"
+          }
+        }
+      }
+    },
+    "Update the description for the running timer." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aktualisiere die Beschreibung für den laufenden Timer."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Update the description for the running timer."
           }
         }
       }

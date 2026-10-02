@@ -21,6 +21,13 @@
 			remoteGlobalIDString = 12AA21582F2EA2AB00AA5C43;
 			remoteInfo = KimaiWidgetExtension;
 		};
+		12CC00062F2EA2AB00AA5C43 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 129FFA6C2E58CD36007B73D3 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 129FFA732E58CD36007B73D3;
+			remoteInfo = KimaiClock;
+		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -47,6 +54,7 @@
 		12AA21732F2EA54B00AA5C43 /* KimaiWidgetExtension.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = KimaiWidgetExtension.entitlements; sourceTree = "<group>"; };
 		12B7E9F72E59DA090035700A /* LICENSE.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = LICENSE.md; sourceTree = "<group>"; };
 		12B7E9F82E59DA090035700A /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
+		12CC00012F2EA2AB00AA5C43 /* KimaiClockTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = KimaiClockTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -93,6 +101,11 @@
 			path = KimaiWidget;
 			sourceTree = "<group>";
 		};
+		12CC00022F2EA2AB00AA5C43 /* KimaiClockTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = KimaiClockTests;
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -112,6 +125,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		12CC00042F2EA2AB00AA5C43 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -125,6 +145,7 @@
 				12616C8B2EA52E6A0041BA7A /* KimaiClockAppIcon.icon */,
 				129FFA762E58CD36007B73D3 /* KimaiClock */,
 				12AA215F2F2EA2AB00AA5C43 /* KimaiWidget */,
+				12CC00022F2EA2AB00AA5C43 /* KimaiClockTests */,
 				12AA215A2F2EA2AB00AA5C43 /* Frameworks */,
 				129FFA752E58CD36007B73D3 /* Products */,
 			);
@@ -135,6 +156,7 @@
 			children = (
 				129FFA742E58CD36007B73D3 /* KimaiClock.app */,
 				12AA21592F2EA2AB00AA5C43 /* KimaiWidgetExtension.appex */,
+				12CC00012F2EA2AB00AA5C43 /* KimaiClockTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -197,6 +219,29 @@
 			productReference = 12AA21592F2EA2AB00AA5C43 /* KimaiWidgetExtension.appex */;
 			productType = "com.apple.product-type.app-extension";
 		};
+		12CC00082F2EA2AB00AA5C43 /* KimaiClockTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 12CC00092F2EA2AB00AA5C43 /* Build configuration list for PBXNativeTarget "KimaiClockTests" */;
+			buildPhases = (
+				12CC00032F2EA2AB00AA5C43 /* Sources */,
+				12CC00042F2EA2AB00AA5C43 /* Frameworks */,
+				12CC00052F2EA2AB00AA5C43 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				12CC00072F2EA2AB00AA5C43 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				12CC00022F2EA2AB00AA5C43 /* KimaiClockTests */,
+			);
+			name = KimaiClockTests;
+			packageProductDependencies = (
+			);
+			productName = KimaiClockTests;
+			productReference = 12CC00012F2EA2AB00AA5C43 /* KimaiClockTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -212,6 +257,10 @@
 					};
 					12AA21582F2EA2AB00AA5C43 = {
 						CreatedOnToolsVersion = 26.2;
+					};
+					12CC00082F2EA2AB00AA5C43 = {
+						CreatedOnToolsVersion = 26.0;
+						TestTargetID = 129FFA732E58CD36007B73D3;
 					};
 				};
 			};
@@ -234,6 +283,7 @@
 			targets = (
 				129FFA732E58CD36007B73D3 /* KimaiClock */,
 				12AA21582F2EA2AB00AA5C43 /* KimaiWidgetExtension */,
+				12CC00082F2EA2AB00AA5C43 /* KimaiClockTests */,
 			);
 		};
 /* End PBXProject section */
@@ -248,6 +298,13 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		12AA21572F2EA2AB00AA5C43 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		12CC00052F2EA2AB00AA5C43 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -271,6 +328,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		12CC00032F2EA2AB00AA5C43 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -278,6 +342,11 @@
 			isa = PBXTargetDependency;
 			target = 12AA21582F2EA2AB00AA5C43 /* KimaiWidgetExtension */;
 			targetProxy = 12AA21692F2EA2AC00AA5C43 /* PBXContainerItemProxy */;
+		};
+		12CC00072F2EA2AB00AA5C43 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 129FFA732E58CD36007B73D3 /* KimaiClock */;
+			targetProxy = 12CC00062F2EA2AB00AA5C43 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -421,7 +490,7 @@
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 26;
+				CURRENT_PROJECT_VERSION = 27;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_TEAM = AXLC3PQNC8;
 				ENABLE_APP_SANDBOX = YES;
@@ -449,7 +518,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 15.0;
-				MARKETING_VERSION = 1.5.5;
+				MARKETING_VERSION = 1.6.0;
 				PRODUCT_BUNDLE_IDENTIFIER = de.foraum.KimaiClock;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -459,7 +528,7 @@
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
-				SWIFT_VERSION = 5.0;
+				SWIFT_VERSION = 6.0;
 			};
 			name = Debug;
 		};
@@ -474,7 +543,7 @@
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 26;
+				CURRENT_PROJECT_VERSION = 27;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_TEAM = AXLC3PQNC8;
 				"DEVELOPMENT_TEAM[sdk=macosx*]" = AXLC3PQNC8;
@@ -503,7 +572,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 15.0;
-				MARKETING_VERSION = 1.5.5;
+				MARKETING_VERSION = 1.6.0;
 				ONLY_ACTIVE_ARCH = YES;
 				PRODUCT_BUNDLE_IDENTIFIER = de.foraum.KimaiClock;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -514,7 +583,7 @@
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
-				SWIFT_VERSION = 5.0;
+				SWIFT_VERSION = 6.0;
 			};
 			name = Release;
 		};
@@ -527,7 +596,7 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 26;
+				CURRENT_PROJECT_VERSION = 27;
 				DEVELOPMENT_TEAM = AXLC3PQNC8;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -541,7 +610,7 @@
 					"@executable_path/../../../../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 15.0;
-				MARKETING_VERSION = 1.5.5;
+				MARKETING_VERSION = 1.6.0;
 				PRODUCT_BUNDLE_IDENTIFIER = de.foraum.KimaiClock.KimaiWidget;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
@@ -550,7 +619,7 @@
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
-				SWIFT_VERSION = 5.0;
+				SWIFT_VERSION = 6.0;
 			};
 			name = Debug;
 		};
@@ -563,7 +632,7 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 26;
+				CURRENT_PROJECT_VERSION = 27;
 				DEVELOPMENT_TEAM = AXLC3PQNC8;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -577,7 +646,7 @@
 					"@executable_path/../../../../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 15.0;
-				MARKETING_VERSION = 1.5.5;
+				MARKETING_VERSION = 1.6.0;
 				PRODUCT_BUNDLE_IDENTIFIER = de.foraum.KimaiClock.KimaiWidget;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
@@ -586,7 +655,47 @@
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
-				SWIFT_VERSION = 5.0;
+				SWIFT_VERSION = 6.0;
+			};
+			name = Release;
+		};
+		12CC000A2F2EA2AB00AA5C43 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 27;
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
+				MARKETING_VERSION = 1.6.0;
+				PRODUCT_BUNDLE_IDENTIFIER = de.foraum.KimaiClockTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 6.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/KimaiClock.app/Contents/MacOS/KimaiClock";
+			};
+			name = Debug;
+		};
+		12CC000B2F2EA2AB00AA5C43 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 27;
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
+				MARKETING_VERSION = 1.6.0;
+				PRODUCT_BUNDLE_IDENTIFIER = de.foraum.KimaiClockTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 6.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/KimaiClock.app/Contents/MacOS/KimaiClock";
 			};
 			name = Release;
 		};
@@ -616,6 +725,15 @@
 			buildConfigurations = (
 				12AA216D2F2EA2AC00AA5C43 /* Debug */,
 				12AA216E2F2EA2AC00AA5C43 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		12CC00092F2EA2AB00AA5C43 /* Build configuration list for PBXNativeTarget "KimaiClockTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				12CC000A2F2EA2AB00AA5C43 /* Debug */,
+				12CC000B2F2EA2AB00AA5C43 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

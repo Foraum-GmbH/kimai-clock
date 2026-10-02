@@ -6,7 +6,7 @@ struct PopupView: View {
     @AppStorage("isSecure") private var isSecure: Bool?
     @AppStorage("apiToken") private var apiToken: String?
     @AppStorage("syncTimer") private var syncTimerOption: String = "sync_on_open"
-    @AppStorage("idleThreshold") private var idleThreshold: String = "15"
+    @AppStorage("idleThreshold") private var idleThreshold: String = ""
 
     @EnvironmentObject var iconModel: IconModel
     @EnvironmentObject var timerModel: TimerModel
@@ -29,6 +29,14 @@ struct PopupView: View {
     let startRemoteTimerProcess: (Double) -> Void
     private let searchSubject = PassthroughSubject<String, Never>()
     private let options = ["sync_on_open", "sync_every_5_min", "sync_every_15_min", "sync_every_30_min"]
+
+    private var isTimerRunning: Bool {
+        (timerModel.isActive ?? false) || timerModel.timer != 0
+    }
+
+    private var shouldShowDescription: Bool {
+        apiManager.activeActivity != nil || isTimerRunning
+    }
 
     private func normalizeServerURL(_ input: String) -> (url: String, isSecure: Bool) {
         var isSecure = true
@@ -94,6 +102,7 @@ struct PopupView: View {
                     Image(systemName: (timerModel.isActive ?? false) ? "pause.fill" : "play.fill")
                         .frame(width: 24, height: 24)
                 }
+                .accessibilityLabel((timerModel.isActive ?? false) ? "Pause timer" : "Start timer")
                 .disabled(apiManager.activeActivity == nil)
                 .buttonStyle(AdaptiveButtonStyle(
                     isProminent: !(timerModel.isActive ?? false),
@@ -130,6 +139,7 @@ struct PopupView: View {
                     Image(systemName: "stop.fill")
                         .frame(width: 24, height: 24)
                 }
+                .accessibilityLabel("Stop timer")
                 .disabled(timerModel.timer == 0)
                 .buttonStyle(AdaptiveButtonStyle(
                     isDanger: true,
@@ -232,6 +242,19 @@ struct PopupView: View {
                 Spacer()
             }
 
+			if shouldShowDescription {
+				VStack(alignment: .leading, spacing: 5) {
+					Text(NSLocalizedString("description_placeholder", comment: ""))
+						.font(.subheadline)
+						.foregroundStyle(.secondary)
+
+					TextField(NSLocalizedString("description_placeholder", comment: ""), text: $apiManager.pendingDescription)
+						.textFieldStyle(RoundedBorderTextFieldStyle())
+						.disabled(timerModel.timer != 0 || apiManager.activeActivity == nil)
+				}
+				.transition(.opacity.combined(with: .move(edge: .top)))
+			}
+
             Divider()
 
             CollapsibleSection(
@@ -255,7 +278,9 @@ struct PopupView: View {
                                 isActive: apiManager.activeActivity?.uniqueId == activity.uniqueId,
                                 canBeRemoved: true,
                                 setActive: {
-                                    apiManager.activeActivity = apiManager.activeActivity?.uniqueId == activity.uniqueId ? nil : activity
+                                    withAnimation(.easeInOut(duration: 0.25)) {
+                                        apiManager.activeActivity = apiManager.activeActivity?.uniqueId == activity.uniqueId ? nil : activity
+                                    }
                                 },
                                 remove: {
                                     recentActivitiesManager.clear(activity)
@@ -265,16 +290,6 @@ struct PopupView: View {
 
                         Divider()
                     }
-
-                    Text(NSLocalizedString("description_placeholder", comment: ""))
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-
-                    TextField(NSLocalizedString("description_placeholder", comment: ""), text: $apiManager.pendingDescription)
-                        .textFieldStyle(RoundedBorderTextFieldStyle())
-                        .disabled(timerModel.timer != 0 || apiManager.activeActivity == nil)
-
-                    Spacer(minLength: 2)
 
                     Text(NSLocalizedString("search_activities", comment: ""))
                         .font(.subheadline)
@@ -294,12 +309,15 @@ struct PopupView: View {
                             isActive: apiManager.activeActivity?.uniqueId == activity.uniqueId,
                             canBeRemoved: false,
                             setActive: {
-                                apiManager.activeActivity = apiManager.activeActivity?.uniqueId == activity.uniqueId ? nil : activity
+                                withAnimation(.easeInOut(duration: 0.25)) {
+                                    apiManager.activeActivity = apiManager.activeActivity?.uniqueId == activity.uniqueId ? nil : activity
+                                }
                             },
                             remove: nil
                         )
                     }
                 }
+                .animation(.easeInOut(duration: 0.25), value: shouldShowDescription)
             }
 
             CollapsibleSection(
@@ -343,30 +361,25 @@ struct PopupView: View {
                         TextField(NSLocalizedString("idle_timer_placeholder", comment: ""), text: Binding(
                                 get: { idleThreshold },
                                 set: { newValue in
-                                    if newValue.isEmpty {
-                                        idleThreshold = "15"
+                                    let filtered = newValue.filter { $0.isNumber }
+                                    if filtered.isEmpty {
+                                        idleThreshold = ""
                                         return
                                     }
-
-                                    let filtered = newValue.filter { $0.isNumber }
                                     if let minutes = Int(filtered), minutes > 0, minutes <= 480 {
                                         idleThreshold = String(minutes)
-                                    } else if filtered.isEmpty {
-                                        idleThreshold = "15"
                                     }
                                 }
                             )
                         )
                             .textFieldStyle(RoundedBorderTextFieldStyle())
-                            .onChange(of: idleThreshold) { _, _ in
-                                // store & update related routines ?
-                                // apiManager.getVersion().store(in: &subscriptionManager.cancellables)
-                            }
 
-                        Text(NSLocalizedString("minutes_suffix", comment: ""))
-                             .font(.subheadline)
-                             .foregroundStyle(.secondary)
-                             .padding(.trailing, 10)
+                        if !idleThreshold.isEmpty {
+                            Text(NSLocalizedString("minutes_suffix", comment: ""))
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                                .padding(.trailing, 10)
+                        }
                      }
 
                     Spacer(minLength: 2)
@@ -560,6 +573,7 @@ struct PopupView: View {
                             .fill(isHovering ? Color.red : Color.secondary.opacity(0.5))
                     )
             }
+            .accessibilityLabel("Quit KimaiClock")
             .buttonStyle(PlainButtonStyle())
             .onHover { hovering in
                 isHovering = hovering

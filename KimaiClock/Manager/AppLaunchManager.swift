@@ -1,7 +1,7 @@
 import AppKit
 
 final class AppLaunchManager {
-    private var observers: [NSObjectProtocol] = []
+    nonisolated(unsafe) private var observers: [NSObjectProtocol] = []
     private let watchedBundleIDs: Set<String>
     private let callback: (String) -> Void
 
@@ -13,14 +13,16 @@ final class AppLaunchManager {
 
         let observer = nc.addObserver(forName: NSWorkspace.didLaunchApplicationNotification, object: nil, queue: .main) { [weak self] notif in
             guard
-                let self,
                 let userInfo = notif.userInfo,
                 let app = userInfo[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication,
                 let bundleID = app.bundleIdentifier
             else { return }
 
-            if self.watchedBundleIDs.contains(bundleID) {
-                self.callback(bundleID)
+            Task { @MainActor [weak self] in
+                guard let self else { return }
+                if self.watchedBundleIDs.contains(bundleID) {
+                    self.callback(bundleID)
+                }
             }
         }
 

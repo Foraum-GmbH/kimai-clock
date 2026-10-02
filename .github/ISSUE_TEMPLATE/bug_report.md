@@ -24,6 +24,7 @@ If applicable, add screenshots to help explain your problem.
 - macOS version:
 - Xcode version:
 - KimaiClock version:
+- Kimai Server version:
 
 ### Additional Context
 Add any other context about the problem here.

@@ -14,7 +14,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var timerModel = TimerModel()
     private var launchManager: AppLaunchManager!
     private var recentActivitiesManager = RecentActivitiesManager()
-    private var userIdleManager: UserIdleManager!
+    private var userIdleManager: UserIdleManager?
+    private var currentIdleThreshold: Double?
     private var popoverState = PopoverState()
 
     private var paragraph: NSMutableParagraphStyle = {
@@ -24,6 +25,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }()
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        if ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil {
+            _ = ProcessInfo.processInfo.beginActivity(options: .userInitiated, reason: "Running unit tests")
+            statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
+            return
+        }
+
         let runningInstances = NSRunningApplication.runningApplications(withBundleIdentifier: Bundle.main.bundleIdentifier!)
 
         if runningInstances.count > 1 {
@@ -73,6 +80,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             button.image = iconModel.icon
             button.imagePosition = .imageLeading
             button.font = NSFont.monospacedSystemFont(ofSize: 14, weight: .regular)
+            button.setAccessibilityTitle("KimaiClock")
 
             let click = NSClickGestureRecognizer(target: self, action: #selector(handleLeftClick(_:)))
             button.addGestureRecognizer(click)
@@ -169,61 +177,101 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 break
             }
         }
+        setupUserIdleManager()
 
-        let idleMinutes = Double(UserDefaults.standard.string(forKey: "idleThreshold") ?? "15") ?? 15
-        userIdleManager = UserIdleManager(threshold: idleMinutes * 60) { [weak self] in
+        NotificationCenter.default.publisher(for: UserDefaults.didChangeNotification)
+            .sink { [weak self] _ in
+                self?.setupUserIdleManager()
+            }
+            .store(in: &cancellables)
+
+        apiManager.startAtLaunch(startRemoteTimerProcess)
+    }
+
+    private func setupUserIdleManager() {
+        let newThreshold: Double? = {
+            guard let thresholdStr = UserDefaults.standard.string(forKey: "idleThreshold"),
+                  !thresholdStr.isEmpty,
+                  let val = Double(thresholdStr),
+                  val > 0 else { return nil }
+            return val
+        }()
+
+        guard newThreshold != currentIdleThreshold else { return }
+        currentIdleThreshold = newThreshold
+
+        userIdleManager?.stop()
+        userIdleManager = nil
+
+        guard let idleThreshold = newThreshold else { return }
+
+        userIdleManager = UserIdleManager(threshold: idleThreshold * 60) { [weak self] idleStart, idleEnd in
             guard
                 let self,
-                UserDefaults.standard.bool(forKey: "userIdleManager.dontShowAgain") == false,
                 self.timerModel.isActive == true,
                 self.alreadyDisplaysAlert == false
             else { return }
 
-            alreadyDisplaysAlert = true
+            DispatchQueue.main.async {
+                self.alreadyDisplaysAlert = true
+            }
 
-            // pause timer for now
-            timerModel.pause()
-            iconModel.setSystemIcon("play.circle")
+            let idleDuration = idleEnd.timeIntervalSince(idleStart)
+
+            self.timerModel.pause()
+            self.timerModel.timer = max(0, self.timerModel.timer - idleDuration)
+            self.updateStatusBarTitle()
+            self.iconModel.setSystemIcon("play.circle")
             ChimeManager.shared.play(.pause)
 
-            let idleMinutes = Int(Double(UserDefaults.standard.string(forKey: "idleThreshold") ?? "15") ?? 15)
-            showIdleAlert(idleMinutes: idleMinutes) { [weak self] selectedAction in
+            let idleMinutes = max(1, Int(idleEnd.timeIntervalSince(idleStart) / 60))
+
+            showIdleAlert(idleStartTime: idleStart, idleMinutes: idleMinutes) { [weak self] selectedAction in
                 guard let self else { return }
 
-                alreadyDisplaysAlert = false
-                userIdleManager.reset()
+                DispatchQueue.main.async {
+                    self.alreadyDisplaysAlert = false
+                }
+                self.userIdleManager?.reset()
 
                 switch selectedAction {
                 case .continueTimer:
-                    timerModel.start()
-                    timerModel.isActive = true
-                    iconModel.setSystemIcon("pause.circle")
+                    let totalIdleDuration = Date().timeIntervalSince(idleStart)
+                    let newBegin = Date().addingTimeInterval(-self.timerModel.timer)
+                    self.apiManager.adjustTimesheetBegin(to: newBegin)
+                        .sink { [weak self] success in
+                            if !success {
+                                self?.apiManager.totalIdleOffset += totalIdleDuration
+                            }
+                        }
+                        .store(in: &self.cancellables)
+                    self.timerModel.start()
+                    self.timerModel.isActive = true
+                    self.iconModel.setSystemIcon("pause.circle")
                     ChimeManager.shared.play(.start)
 
                 case .stopTimer:
-                    apiManager.stopActivity()
+                    self.apiManager.stopActivityAt(idleStart)
                         .sink { [weak self] success in
                             guard let self else { return }
                             if success {
-                                apiManager.activeActivity = nil
-                                timerModel.stop()
-                                timerModel.isActive = false
-                                iconModel.setSystemIcon("circle")
+                                self.apiManager.activeActivity = nil
+                                self.timerModel.stop()
+                                self.timerModel.isActive = false
+                                self.iconModel.setSystemIcon("circle")
                                 ChimeManager.shared.play(.stop)
-                                updateStatusBarTitle()
+                                self.updateStatusBarTitle()
                             } else {
-                                timerModel.start()
-                                timerModel.isActive = true
-                                iconModel.setSystemIcon("pause.circle")
+                                self.timerModel.start()
+                                self.timerModel.isActive = true
+                                self.iconModel.setSystemIcon("pause.circle")
                                 ChimeManager.shared.play(.error)
                             }
                         }
-                        .store(in: &cancellables)
+                        .store(in: &self.cancellables)
                 }
             }
         }
-
-        apiManager.startAtLaunch(startRemoteTimerProcess)
     }
 
     private func startRemoteTimerProcess(remoteTime: Double) {

@@ -15,6 +15,9 @@ struct CollapsibleSection<Content: View>: View {
                     .foregroundColor(.secondary)
             }
             .contentShape(Rectangle())
+            .accessibilityElement(children: .combine)
+            .accessibilityAddTraits(.isButton)
+            .accessibilityValue(isExpanded ? "Expanded" : "Collapsed")
             .onTapGesture {
                 withAnimation(.interpolatingSpring(stiffness: 200, damping: 20)) {
                     isExpanded.toggle()

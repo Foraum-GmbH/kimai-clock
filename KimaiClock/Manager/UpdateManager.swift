@@ -40,11 +40,11 @@ class UpdateManager: ObservableObject {
         guard let url = URL(string: "https://api.github.com/repos/Foraum-GmbH/kimai-clock/releases/latest") else { return }
 
         URLSession.shared.dataTaskPublisher(for: url)
+            .receive(on: DispatchQueue.main)
             .map(\.data)
             .decode(type: GitHubRelease.self, decoder: JSONDecoder())
             .map { $0.tag_name.trimmingCharacters(in: CharacterSet(charactersIn: "v")) }
             .replaceError(with: "error")
-            .receive(on: RunLoop.main)
             .sink { [weak self] version in
                 guard let self = self else { return }
                 self.latestVersion = version

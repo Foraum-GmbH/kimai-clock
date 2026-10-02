@@ -9,15 +9,15 @@
       <BuildActionEntries>
          <BuildActionEntry
             buildForTesting = "YES"
-            buildForRunning = "YES"
-            buildForProfiling = "YES"
-            buildForArchiving = "YES"
+            buildForRunning = "NO"
+            buildForProfiling = "NO"
+            buildForArchiving = "NO"
             buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "129FFA732E58CD36007B73D3"
-               BuildableName = "KimaiClock.app"
-               BlueprintName = "KimaiClock"
+               BlueprintIdentifier = "12CC00082F2EA2AB00AA5C43"
+               BuildableName = "KimaiClockTests.xctest"
+               BlueprintName = "KimaiClockTests"
                ReferencedContainer = "container:KimaiClock.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
@@ -51,30 +51,7 @@
       ignoresPersistentStateOnLaunch = "NO"
       debugDocumentVersioning = "YES"
       debugServiceExtension = "internal"
-      enableGPUFrameCaptureMode = "3"
-      enableGPUValidationMode = "1"
       allowLocationSimulation = "NO">
-      <BuildableProductRunnable
-         runnableDebuggingMode = "0">
-         <BuildableReference
-            BuildableIdentifier = "primary"
-            BlueprintIdentifier = "129FFA732E58CD36007B73D3"
-            BuildableName = "KimaiClock.app"
-            BlueprintName = "KimaiClock"
-            ReferencedContainer = "container:KimaiClock.xcodeproj">
-         </BuildableReference>
-      </BuildableProductRunnable>
-      <EnvironmentVariables>
-         <EnvironmentVariable
-            key = "OS_ACTIVITY_MODE"
-            value = "disable"
-            isEnabled = "YES">
-         </EnvironmentVariable>
-      </EnvironmentVariables>
-      <LocationScenarioReference
-         identifier = "London, England"
-         referenceType = "1">
-      </LocationScenarioReference>
    </LaunchAction>
    <ProfileAction
       buildConfiguration = "Release"
@@ -82,16 +59,6 @@
       savedToolIdentifier = ""
       useCustomWorkingDirectory = "NO"
       debugDocumentVersioning = "YES">
-      <BuildableProductRunnable
-         runnableDebuggingMode = "0">
-         <BuildableReference
-            BuildableIdentifier = "primary"
-            BlueprintIdentifier = "129FFA732E58CD36007B73D3"
-            BuildableName = "KimaiClock.app"
-            BlueprintName = "KimaiClock"
-            ReferencedContainer = "container:KimaiClock.xcodeproj">
-         </BuildableReference>
-      </BuildableProductRunnable>
    </ProfileAction>
    <AnalyzeAction
       buildConfiguration = "Debug">

@@ -2,6 +2,21 @@
 
 All notable changes to KimaiClock will be documented in this file.
 
+## [1.6.0] - 2026-10-02
+
+### Added
+- Add description field when starting a timer, attached to initial timesheet creation (#33 by @dmytro-kerest)
+- Retroactive idle time adjustment when stopping timer from idle alert (`stopActivityAt`)
+- Comprehensive unit test suite (`KimaiClockTests`) with coverage across models, managers, and API routes
+- Dedicated test scheme with code coverage enabled
+
+### Changed
+- Migrated codebase and widget extension to Swift 6 language mode
+- Improved idle threshold configuration (optional threshold with empty default)
+- Added @dmytro-kerest to contributors
+
+---
+
 ## [1.5.5] - 2026-04-07
 
 ### Added

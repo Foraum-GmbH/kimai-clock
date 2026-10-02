@@ -106,7 +106,8 @@ class ApiManager: ObservableObject {
         WidgetCenter.shared.reloadAllTimelines()
     }
 
-    private var activeTimesheetId: Int?
+    var activeTimesheetId: Int?
+    var totalIdleOffset: TimeInterval = 0
     private var cancellables = Set<AnyCancellable>()
     private var syncTimer: DispatchSourceTimer?
 
@@ -116,15 +117,20 @@ class ApiManager: ObservableObject {
         return temp
     }()
 
-    private let session: URLSession = {
-        let tempSession = URLSession.shared
-        tempSession.configuration.urlCache = nil
-        tempSession.configuration.httpCookieStorage = nil
-        tempSession.configuration.requestCachePolicy = .reloadIgnoringLocalAndRemoteCacheData
-        tempSession.configuration.httpCookieAcceptPolicy = .never
-        return tempSession
-    }()
+    private let session: URLSession
 
+    init(session: URLSession? = nil) {
+        if let session {
+            self.session = session
+        } else {
+            let config = URLSessionConfiguration.ephemeral
+            config.requestCachePolicy = .reloadIgnoringLocalAndRemoteCacheData
+            config.urlCache = nil
+            config.httpCookieStorage = nil
+            config.httpCookieAcceptPolicy = .never
+            self.session = URLSession(configuration: config)
+        }
+    }
     // MARK: - Timer setup
 
     func setupSyncTimer(_ callback: @escaping (Double) -> Void) {
@@ -145,7 +151,7 @@ class ApiManager: ObservableObject {
         print("Sync timer started with interval \(interval) seconds (\(option))")
     }
 
-    private func intervalForOption(_ option: String) -> TimeInterval? {
+    func intervalForOption(_ option: String) -> TimeInterval? {
         switch option {
         case "sync_every_5_min": return 5 * 60
         case "sync_every_15_min": return 15 * 60
@@ -177,10 +183,10 @@ class ApiManager: ObservableObject {
         request.addValue("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36 KimaiClock", forHTTPHeaderField: "User-Agent")
 
         session.dataTaskPublisher(for: request)
+            .receive(on: DispatchQueue.main)
             .map(\.data)
             .decode(type: [TimesheetResponse].self, decoder: JSONDecoder())
             .map { $0.first?.toDomainModel() }
-            .receive(on: DispatchQueue.main)
             .sink(receiveCompletion: { completion in
                 if case .failure(let error) = completion {
                     print("Failed to fetch remote timer:", error)
@@ -228,13 +234,13 @@ class ApiManager: ObservableObject {
         request.addValue("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36 KimaiClock", forHTTPHeaderField: "User-Agent")
 
         return session.dataTaskPublisher(for: request)
+            .receive(on: DispatchQueue.main)
             .map(\.data)
             .decode(type: ServerVersion.self, decoder: JSONDecoder())
             .map { version in
                 version.versionId < 20000 ? "unsupported" : version.copyright
             }
             .replaceError(with: "500")
-            .receive(on: RunLoop.main)
             .eraseToAnyPublisher()
             .sink { [weak self] value in
                 self?.serverVersion = "Server: " + value
@@ -275,6 +281,7 @@ class ApiManager: ObservableObject {
                 request.addValue("application/json", forHTTPHeaderField: "Accept")
 
                 return self.session.dataTaskPublisher(for: request)
+                    .receive(on: DispatchQueue.main)
                     .map(\.data)
                     .decode(type: [Project].self, decoder: JSONDecoder())
                     .map { projects -> [Activity] in
@@ -330,13 +337,13 @@ class ApiManager: ObservableObject {
         request.addValue("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36 KimaiClock", forHTTPHeaderField: "User-Agent")
 
         return session.dataTaskPublisher(for: request)
+            .receive(on: DispatchQueue.main)
             .map(\.data)
             .decode(type: [Activity].self, decoder: JSONDecoder())
             .map { activities in
                 Array(activities.prefix(maxSearchLength))
             }
             .replaceError(with: [])
-            .receive(on: RunLoop.main)
             .eraseToAnyPublisher()
     }
 
@@ -368,21 +375,19 @@ class ApiManager: ObservableObject {
         request.httpBody = try? JSONSerialization.data(withJSONObject: body)
 
         return session.dataTaskPublisher(for: request)
-            .tryMap { [weak self] data, response -> Int? in
+            .receive(on: DispatchQueue.main)
+            .map { data, response -> Int? in
                 guard let httpResponse = response as? HTTPURLResponse,
                       httpResponse.statusCode == 200 else { return nil }
-                let json = try JSONSerialization.jsonObject(with: data) as? [String: Any]
-                let id = json?["id"] as? Int
-                if let id = id {
-                    self?.activeTimesheetId = id
-                }
-                return id
+                let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
+                return json?["id"] as? Int
             }
             .replaceError(with: nil)
-            .receive(on: RunLoop.main)
             .map { [weak self] id -> Int? in
-                if id != nil {
+                if let id {
+                    self?.activeTimesheetId = id
                     self?.pendingDescription = ""
+                    self?.totalIdleOffset = 0
                 }
                 return id
             }
@@ -408,10 +413,10 @@ class ApiManager: ObservableObject {
         request.httpBody = try? JSONSerialization.data(withJSONObject: body)
 
         return session.dataTaskPublisher(for: request)
+            .receive(on: DispatchQueue.main)
             .map { $0.response as? HTTPURLResponse }
             .map { $0?.statusCode == 200 }
             .replaceError(with: false)
-            .receive(on: RunLoop.main)
             .eraseToAnyPublisher()
     }
 
@@ -431,18 +436,24 @@ class ApiManager: ObservableObject {
                          forHTTPHeaderField: "User-Agent")
 
         return session.dataTaskPublisher(for: request)
-            .map { $0.response as? HTTPURLResponse }
-            .map { $0?.statusCode == 204 }
-            .map {
-                self.activeTimesheetId = nil
-                return $0
-            }
+            .receive(on: DispatchQueue.main)
+            .map { ($0.response as? HTTPURLResponse)?.statusCode == 204 }
             .replaceError(with: false)
-            .receive(on: RunLoop.main)
+            .map { [weak self] success in
+                if success {
+                    self?.activeTimesheetId = nil
+                }
+                return success
+            }
             .eraseToAnyPublisher()
     }
 
     func stopActivity() -> AnyPublisher<Bool, Never> {
+        if totalIdleOffset > 0 {
+            let adjustedEndTime = Date().addingTimeInterval(-totalIdleOffset)
+            return stopActivityAt(adjustedEndTime)
+        }
+
         guard activeActivity != nil,
               let id = activeTimesheetId else {
             return Just(true).eraseToAnyPublisher()
@@ -461,14 +472,82 @@ class ApiManager: ObservableObject {
         request.addValue("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36 KimaiClock", forHTTPHeaderField: "User-Agent")
 
         return session.dataTaskPublisher(for: request)
-            .map { $0.response as? HTTPURLResponse }
-            .map { $0?.statusCode == 200 }
-            .map {
-                self.activeTimesheetId = nil
-                return $0
-            }
+            .receive(on: DispatchQueue.main)
+            .map { ($0.response as? HTTPURLResponse)?.statusCode == 200 }
             .replaceError(with: false)
-            .receive(on: RunLoop.main)
+            .map { [weak self] success in
+                if success {
+                    self?.activeTimesheetId = nil
+                    self?.totalIdleOffset = 0
+                }
+                return success
+            }
+            .eraseToAnyPublisher()
+    }
+
+    func adjustTimesheetBegin(to newBegin: Date) -> AnyPublisher<Bool, Never> {
+        guard let id = activeTimesheetId,
+              let baseURL = serverIP,
+              let url = URL(string: "\(baseURL)/api/timesheets/\(id)") else {
+            return Just(false).eraseToAnyPublisher()
+        }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "PATCH"
+        request.addValue("Bearer \(apiToken ?? "")", forHTTPHeaderField: "Authorization")
+        request.addValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.addValue("application/json", forHTTPHeaderField: "Accept")
+        request.addValue("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36 KimaiClock",
+                         forHTTPHeaderField: "User-Agent")
+
+        let body: [String: Any] = [
+            "begin": secondsFormatter.string(from: newBegin)
+        ]
+        request.httpBody = try? JSONSerialization.data(withJSONObject: body)
+
+        return session.dataTaskPublisher(for: request)
+            .receive(on: DispatchQueue.main)
+            .map { ($0.response as? HTTPURLResponse)?.statusCode == 200 }
+            .replaceError(with: false)
+            .eraseToAnyPublisher()
+    }
+
+    func stopActivityAt(_ date: Date) -> AnyPublisher<Bool, Never> {
+        guard let id = activeTimesheetId,
+              let activity = activeActivity,
+              let baseURL = serverIP,
+              let url = URL(string: "\(baseURL)/api/timesheets/\(id)") else {
+            return Just(false).eraseToAnyPublisher()
+        }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "PATCH"
+        request.addValue("Bearer \(apiToken ?? "")", forHTTPHeaderField: "Authorization")
+        request.addValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.addValue("application/json", forHTTPHeaderField: "Accept")
+        request.addValue("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36 KimaiClock",
+                         forHTTPHeaderField: "User-Agent")
+
+        var body: [String: Any] = [
+            "end": secondsFormatter.string(from: date),
+            "activity": activity.id
+        ]
+        if let project = activity.project {
+            body["project"] = project
+        }
+        request.httpBody = try? JSONSerialization.data(withJSONObject: body)
+
+        return session.dataTaskPublisher(for: request)
+            .receive(on: DispatchQueue.main)
+            .map { ($0.response as? HTTPURLResponse)?.statusCode == 200 }
+            .replaceError(with: false)
+            .map { [weak self] success in
+                if success {
+                    self?.activeTimesheetId = nil
+                    self?.totalIdleOffset = 0
+                }
+                return success
+            }
             .eraseToAnyPublisher()
     }
 }

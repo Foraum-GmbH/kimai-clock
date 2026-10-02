@@ -24,6 +24,8 @@ struct ActivityCell: View {
                 Spacer()
             }
         }
+        .accessibilityElement(children: .combine)
+        .accessibilityAddTraits(isActive ? [.isButton, .isSelected] : [.isButton])
         .buttonStyle(.plain)
         .if(canBeRemoved) { view in
                     view.contextMenu {
