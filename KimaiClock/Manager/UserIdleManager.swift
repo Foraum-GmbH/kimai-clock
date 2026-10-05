@@ -6,10 +6,17 @@ final class UserIdleManager {
     private let idleThreshold: TimeInterval
     private let callback: (Date, Date) -> Void
     private var hasTriggered = false
+    private var idleTimeProvider: (() -> TimeInterval)?
 
-    init(threshold: TimeInterval, checkInterval: TimeInterval = 1.0, onIdle: @escaping (Date, Date) -> Void) {
+    init(
+        threshold: TimeInterval,
+        checkInterval: TimeInterval = 1.0,
+        idleTimeProvider: (() -> TimeInterval)? = nil,
+        onIdle: @escaping (Date, Date) -> Void
+    ) {
         self.idleThreshold = threshold
         self.callback = onIdle
+        self.idleTimeProvider = idleTimeProvider
 
         timer = Timer.scheduledTimer(withTimeInterval: checkInterval, repeats: true) { [weak self] _ in
             Task { @MainActor [weak self] in
@@ -53,8 +60,8 @@ final class UserIdleManager {
         return TimeInterval(idleNS) / 1_000_000_000
     }
 
-    private func checkIdle() {
-        let idleTime = systemIdleTime()
+    func checkIdle() {
+        let idleTime = idleTimeProvider?() ?? systemIdleTime()
 
         if idleTime < idleThreshold {
             hasTriggered = false

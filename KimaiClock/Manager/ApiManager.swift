@@ -47,11 +47,13 @@ struct Timesheet: Codable {
     // Remote timer parsing
     let id: Int?
     let begin: String?
+    var description: String?
 }
 
 private struct TimesheetResponse: Codable {
     let id: Int
     let begin: String?
+    let description: String?
     let activity: ActivityResponse
     let project: ProjectResponse?
 
@@ -81,7 +83,8 @@ extension TimesheetResponse {
         return Timesheet(
             activity: activity,
             id: id,
-            begin: begin
+            begin: begin,
+            description: description
         )
     }
 }
@@ -97,9 +100,17 @@ class ApiManager: ObservableObject {
     @Published var pendingDescription: String = ""
     @Published var activeActivity: Activity? {
         didSet {
+            if oldValue?.uniqueId != activeActivity?.uniqueId {
+                // new or ended session -> forget the description of the previous one
+                sessionDescription = ""
+                lastTimesheetId = nil
+            }
             syncToWidget()
         }
     }
+
+    /// Description of the current session. Survives a pause, so resuming reuses it.
+    @Published private(set) var sessionDescription: String = ""
 
     private func syncToWidget() {
         WidgetSync.save(activity: activeActivity)
@@ -107,6 +118,8 @@ class ApiManager: ObservableObject {
     }
 
     var activeTimesheetId: Int?
+    /// Timesheet of the last segment that was stopped by a pause
+    private(set) var lastTimesheetId: Int?
     var totalIdleOffset: TimeInterval = 0
     private var cancellables = Set<AnyCancellable>()
     private var syncTimer: DispatchSourceTimer?
@@ -205,6 +218,7 @@ class ApiManager: ObservableObject {
                        let timesheetId = timer.id {
                         self.activeTimesheetId = timesheetId
                         self.activeActivity = timer.activity
+                        self.sessionDescription = timer.description ?? ""
 
                         let beginDate = self.secondsFormatter.date(from: timer.begin ?? "") ?? Date()
                         let now = Date()
@@ -354,8 +368,9 @@ class ApiManager: ObservableObject {
             return Just(nil).eraseToAnyPublisher()
         }
 
-        let trimmedDescription = (description ?? pendingDescription)
+        let typedDescription = (description ?? pendingDescription)
             .trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedDescription = typedDescription.isEmpty ? sessionDescription : typedDescription
 
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
@@ -386,6 +401,8 @@ class ApiManager: ObservableObject {
             .map { [weak self] id -> Int? in
                 if let id {
                     self?.activeTimesheetId = id
+                    self?.lastTimesheetId = nil
+                    self?.sessionDescription = trimmedDescription
                     self?.pendingDescription = ""
                     self?.totalIdleOffset = 0
                 }
@@ -395,8 +412,15 @@ class ApiManager: ObservableObject {
     }
 
     func updateTimesheetDescription(_ description: String) -> AnyPublisher<Bool, Never> {
-        guard let id = activeTimesheetId,
-              let baseURL = serverIP,
+        let description = description.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        // while paused there is no running timesheet -> update the last segment
+        guard let id = activeTimesheetId ?? lastTimesheetId else {
+            sessionDescription = description
+            return Just(activeActivity != nil).eraseToAnyPublisher()
+        }
+
+        guard let baseURL = serverIP,
               let url = URL(string: "\(baseURL)/api/timesheets/\(id)") else {
             return Just(false).eraseToAnyPublisher()
         }
@@ -417,6 +441,12 @@ class ApiManager: ObservableObject {
             .map { $0.response as? HTTPURLResponse }
             .map { $0?.statusCode == 200 }
             .replaceError(with: false)
+            .map { [weak self] success in
+                if success {
+                    self?.sessionDescription = description
+                }
+                return success
+            }
             .eraseToAnyPublisher()
     }
 
@@ -448,15 +478,17 @@ class ApiManager: ObservableObject {
             .eraseToAnyPublisher()
     }
 
-    func stopActivity() -> AnyPublisher<Bool, Never> {
-        if totalIdleOffset > 0 {
-            let adjustedEndTime = Date().addingTimeInterval(-totalIdleOffset)
-            return stopActivityAt(adjustedEndTime)
-        }
-
+    /// Stops the running timesheet. Accumulated idle time is always deducted from the end time.
+    /// - Parameter end: explicit end time (e.g. idle start or sleep), defaults to now
+    func stopActivity(at end: Date? = nil) -> AnyPublisher<Bool, Never> {
         guard activeActivity != nil,
               let id = activeTimesheetId else {
             return Just(true).eraseToAnyPublisher()
+        }
+
+        if end != nil || totalIdleOffset > 0 {
+            let adjustedEndTime = (end ?? Date()).addingTimeInterval(-totalIdleOffset)
+            return stopActivityAt(adjustedEndTime)
         }
 
         guard let baseURL = serverIP,
@@ -477,6 +509,7 @@ class ApiManager: ObservableObject {
             .replaceError(with: false)
             .map { [weak self] success in
                 if success {
+                    self?.lastTimesheetId = id
                     self?.activeTimesheetId = nil
                     self?.totalIdleOffset = 0
                 }
@@ -516,6 +549,7 @@ class ApiManager: ObservableObject {
             .replaceError(with: false)
             .map { [weak self] success in
                 if success {
+                    self?.lastTimesheetId = id
                     self?.activeTimesheetId = nil
                     self?.totalIdleOffset = 0
                 }

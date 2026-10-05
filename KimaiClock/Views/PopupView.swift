@@ -111,7 +111,7 @@ struct PopupView: View {
                 .contextMenu {
                     Button {
                         contextMenuActionTaken = true
-                        timesheetDescription = ""
+                        timesheetDescription = apiManager.sessionDescription
                         showEditDescriptionAlert = true
                     } label: {
                         Label("Edit description", systemImage: "pencil")
@@ -148,7 +148,7 @@ struct PopupView: View {
                 .contextMenu {
                     Button {
                         contextMenuActionTaken = true
-                        timesheetDescription = ""
+                        timesheetDescription = apiManager.sessionDescription
                         showEditDescriptionAlert = true
                     } label: {
                         Label("Edit description", systemImage: "pencil")
@@ -157,7 +157,7 @@ struct PopupView: View {
 
                     Button {
                         contextMenuActionTaken = true
-                        timesheetDescription = ""
+                        timesheetDescription = apiManager.sessionDescription
                         showDescriptionAlert = true
                     } label: {
                         Label("Stop with description", systemImage: "stop.fill")
@@ -242,18 +242,24 @@ struct PopupView: View {
                 Spacer()
             }
 
-			if shouldShowDescription {
-				VStack(alignment: .leading, spacing: 5) {
-					Text(NSLocalizedString("description_placeholder", comment: ""))
-						.font(.subheadline)
-						.foregroundStyle(.secondary)
+            if shouldShowDescription {
+                VStack(alignment: .leading, spacing: 5) {
+                    Text(NSLocalizedString("description_placeholder", comment: ""))
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
 
-					TextField(NSLocalizedString("description_placeholder", comment: ""), text: $apiManager.pendingDescription)
-						.textFieldStyle(RoundedBorderTextFieldStyle())
-						.disabled(timerModel.timer != 0 || apiManager.activeActivity == nil)
-				}
-				.transition(.opacity.combined(with: .move(edge: .top)))
-			}
+                    TextField(
+                        apiManager.sessionDescription.isEmpty
+                            ? NSLocalizedString("description_placeholder", comment: "")
+                            : apiManager.sessionDescription,
+                        text: $apiManager.pendingDescription
+                    )
+                        .textFieldStyle(RoundedBorderTextFieldStyle())
+                        // editable before start and while paused (applies to the resumed timesheet)
+                        .disabled(timerModel.isActive == true || apiManager.activeActivity == nil)
+                }
+                .transition(.opacity.combined(with: .move(edge: .top)))
+            }
 
             Divider()
 

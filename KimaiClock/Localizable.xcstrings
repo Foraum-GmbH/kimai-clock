@@ -106,10 +106,8 @@
       }
     },
     "Cancel" : {
-
     },
     "Collapsed" : {
-
     },
     "copyright_text" : {
       "localizations" : {
@@ -196,7 +194,6 @@
       }
     },
     "Expanded" : {
-
     },
     "feedback_button" : {
       "extractionState" : "manual",
@@ -255,13 +252,13 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Dein Timer lief weiter, während dein Mac inaktiv war. Du kannst die Aufzeichnung fortsetzen oder den Timer stoppen, um die aktuelle Sitzung zu beenden."
+            "value" : "Dein Timer lief weiter, während dein Mac inaktiv war. Entferne die Leerlaufzeit aus dem Zeiteintrag, behalte sie (z. B. für ein Telefonat) oder stoppe den Timer zu dem Zeitpunkt, an dem du gegangen bist."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Your timer kept running while your Mac was idle. You can continue tracking from where you left off, or stop the timer to end the current session."
+            "value" : "Your timer kept running while your Mac was idle. Remove the idle time from the timesheet, keep it (e.g. for a phone call), or stop the timer at the moment you left."
           }
         }
       }
@@ -272,13 +269,30 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Du warst %lld Minuten inaktiv"
+            "value" : "Willkommen zurück"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "You've been idle for %lld minutes"
+            "value" : "Welcome back"
+          }
+        }
+      }
+    },
+    "idle_continue_discard" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ohne Leerlaufzeit fortsetzen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Continue without idle time"
           }
         }
       }
@@ -289,13 +303,13 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Weiter"
+            "value" : "Mit Leerlaufzeit fortsetzen"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Continue"
+            "value" : "Continue and keep idle time"
           }
         }
       }
@@ -306,13 +320,13 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Nicht mehr anzeigen"
+            "value" : "Auswahl merken und nicht mehr fragen"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Don't show again"
+            "value" : "Remember my choice and don’t ask again"
           }
         }
       }
@@ -469,10 +483,8 @@
       }
     },
     "Pause timer" : {
-
     },
     "Quit KimaiClock" : {
-
     },
     "recent_activities" : {
       "extractionState" : "manual",
@@ -647,7 +659,6 @@
       }
     },
     "Start timer" : {
-
     },
     "Stop" : {
       "extractionState" : "manual",
@@ -667,7 +678,6 @@
       }
     },
     "Stop timer" : {
-
     },
     "Stop with description" : {
       "extractionState" : "manual",

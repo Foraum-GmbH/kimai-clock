@@ -9,9 +9,23 @@ import AppKit
 internal import Combine
 import SwiftUI
 
-enum IdleAction {
-    case continueTimer
+enum IdleAction: String {
+    /// keep running, idle time is deducted from the timesheet
+    case continueDiscardIdle
+    /// keep running, idle time stays on the timesheet (e.g. phone call)
+    case continueKeepIdle
+    /// stop the timesheet at the moment the user went idle
     case stopTimer
+
+    static let rememberKey = "userIdleManager.dontShowAgain"
+    static let rememberedActionKey = "userIdleManager.rememberedAction"
+
+    /// The action chosen with "remember my choice" ticked, if any
+    static var remembered: IdleAction? {
+        guard UserDefaults.standard.bool(forKey: rememberKey),
+              let raw = UserDefaults.standard.string(forKey: rememberedActionKey) else { return nil }
+        return IdleAction(rawValue: raw)
+    }
 }
 
 struct IdleAlertView: View {
@@ -56,7 +70,7 @@ struct IdleAlertView: View {
                 .foregroundColor(.secondary)
                 .frame(maxWidth: .infinity, alignment: isMacOS26OrNewer ? .leading : .center)
 
-            Text(String(format: NSLocalizedString("idle_alert_title", comment: ""), idleMinutes))
+            Text(NSLocalizedString("idle_alert_title", comment: ""))
                 .font(.title3.bold())
                 .foregroundColor(.primary)
                 .frame(maxWidth: .infinity, alignment: isMacOS26OrNewer ? .leading : .center)
@@ -79,9 +93,10 @@ struct IdleAlertView: View {
             .toggleStyle(.checkbox)
             .frame(maxWidth: .infinity, alignment: isMacOS26OrNewer ? .leading : .center)
 
-            HStack(spacing: 10) {
+            VStack(spacing: 10) {
+                actionButton("idle_continue_discard", action: .continueDiscardIdle, color: .accentColor)
+                actionButton("idle_continue_keep", action: .continueKeepIdle, color: .accentColor)
                 actionButton("idle_stop_keep", action: .stopTimer, color: .red)
-                actionButton("idle_continue_keep", action: .continueTimer, color: .accentColor)
             }
             .padding(.bottom, 4)
         }
@@ -94,7 +109,8 @@ struct IdleAlertView: View {
 
     private func handleAction(_ action: IdleAction) {
         if dontShowAgain {
-            UserDefaults.standard.set(true, forKey: "userIdleManager.dontShowAgain")
+            UserDefaults.standard.set(action.rawValue, forKey: IdleAction.rememberedActionKey)
+            UserDefaults.standard.set(true, forKey: IdleAction.rememberKey)
         }
         callback(action)
     }
@@ -158,7 +174,7 @@ func showIdleAlert(idleStartTime: Date? = nil, idleMinutes: Int, callback: @esca
     window.titlebarAppearsTransparent = true
     window.titleVisibility = .hidden
     window.isMovableByWindowBackground = true
-    window.setContentSize(NSSize(width: 380, height: 280))
+    window.setContentSize(controller.sizeThatFits(in: NSSize(width: 380, height: CGFloat.greatestFiniteMagnitude)))
     window.center()
 
     NSApp.activate(ignoringOtherApps: true)
