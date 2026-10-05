@@ -46,7 +46,7 @@ Right-clicking the stop button inside the popover reveals additional options:
 | Action | Description |
 |---|---|
 | **Stop with description** | Prompts for a note, then stops and records the timesheet with that comment. |
-| **Discard and delete** | Immediately cancels the timer and removes the timesheet from the server. |
+| **Discard and delete** | Immediately cancels the timer and removes the timesheet from the server (only while the timer is running). |
 
 ### Idle Detection
 

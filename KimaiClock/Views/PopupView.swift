@@ -182,7 +182,8 @@ struct PopupView: View {
                     } label: {
                         Label("Discard & delete", systemImage: "trash")
                     }
-                    .disabled(timerModel.timer == 0)
+                    // while paused there is no running timesheet to delete
+                    .disabled(timerModel.isActive != true)
                 }
                 .alert("Stop with description", isPresented: $showDescriptionAlert) {
                     TextField("Description", text: $timesheetDescription)
