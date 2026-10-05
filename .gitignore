@@ -30,3 +30,6 @@ fastlane/Preview.html
 CLAUDE.md
 TASK.md
 .claude/
+
+# Manual test checklist (local only)
+TEST.md
