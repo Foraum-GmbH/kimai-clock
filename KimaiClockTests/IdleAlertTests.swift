@@ -1,24 +1,33 @@
 import XCTest
 @testable import KimaiClock
 
+@MainActor
 final class IdleAlertTests: XCTestCase {
-    func testIdleActionCases() {
-        let action1 = IdleAction.continueTimer
-        let action2 = IdleAction.stopTimer
+    override func tearDown() {
+        UserDefaults.standard.removeObject(forKey: IdleAction.rememberKey)
+        UserDefaults.standard.removeObject(forKey: IdleAction.rememberedActionKey)
+        super.tearDown()
+    }
 
-        switch action1 {
-        case .continueTimer:
-            XCTAssertTrue(true)
-        case .stopTimer:
-            XCTFail("Expected continueTimer")
+    func testIdleActionRawValueRoundTrip() {
+        for action in [IdleAction.continueDiscardIdle, .continueKeepIdle, .stopTimer] {
+            XCTAssertEqual(IdleAction(rawValue: action.rawValue), action)
         }
+    }
 
-        switch action2 {
-        case .continueTimer:
-            XCTFail("Expected stopTimer")
-        case .stopTimer:
-            XCTAssertTrue(true)
-        }
+    func testRememberedActionRequiresCheckbox() {
+        UserDefaults.standard.set(IdleAction.continueKeepIdle.rawValue, forKey: IdleAction.rememberedActionKey)
+        UserDefaults.standard.set(false, forKey: IdleAction.rememberKey)
+        XCTAssertNil(IdleAction.remembered)
+
+        UserDefaults.standard.set(true, forKey: IdleAction.rememberKey)
+        XCTAssertEqual(IdleAction.remembered, .continueKeepIdle)
+    }
+
+    func testRememberedActionIgnoresUnknownValue() {
+        UserDefaults.standard.set("continueTimer", forKey: IdleAction.rememberedActionKey)
+        UserDefaults.standard.set(true, forKey: IdleAction.rememberKey)
+        XCTAssertNil(IdleAction.remembered)
     }
 
     func testFormattedAbsenceDurationWithNilStartTime() {

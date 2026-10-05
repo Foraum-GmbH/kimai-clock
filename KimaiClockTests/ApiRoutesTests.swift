@@ -146,12 +146,11 @@ final class ApiRoutesTests: XCTestCase {
         XCTAssertEqual(interceptedRequest?.httpMethod, "POST")
         XCTAssertEqual(interceptedRequest?.value(forHTTPHeaderField: "Content-Type"), "application/json")
 
-        if let bodyData = interceptedRequest?.httpBody,
-           let json = try? JSONSerialization.jsonObject(with: bodyData) as? [String: Any] {
-            XCTAssertEqual(json["activity"] as? Int, 42)
-            XCTAssertEqual(json["project"] as? Int, 10)
-            XCTAssertEqual(json["description"] as? String, "Fixing bug")
-        }
+        let json = interceptedRequest?.jsonBody ?? [:]
+        XCTAssertFalse(json.isEmpty, "request body missing")
+        XCTAssertEqual(json["activity"] as? Int, 42)
+        XCTAssertEqual(json["project"] as? Int, 10)
+        XCTAssertEqual(json["description"] as? String, "Fixing bug")
     }
 
     func testUpdateTimesheetDescriptionRoute() {
@@ -177,10 +176,9 @@ final class ApiRoutesTests: XCTestCase {
         XCTAssertEqual(interceptedRequest?.url?.path, "/api/timesheets/555")
         XCTAssertEqual(interceptedRequest?.httpMethod, "PATCH")
 
-        if let bodyData = interceptedRequest?.httpBody,
-           let json = try? JSONSerialization.jsonObject(with: bodyData) as? [String: Any] {
-            XCTAssertEqual(json["description"] as? String, "Updated notes")
-        }
+        let json = interceptedRequest?.jsonBody ?? [:]
+        XCTAssertFalse(json.isEmpty, "request body missing")
+        XCTAssertEqual(json["description"] as? String, "Updated notes")
     }
 
     func testStopActivityRoute() {
@@ -238,12 +236,11 @@ final class ApiRoutesTests: XCTestCase {
         XCTAssertEqual(interceptedRequest?.url?.path, "/api/timesheets/888")
         XCTAssertEqual(interceptedRequest?.httpMethod, "PATCH")
 
-        if let bodyData = interceptedRequest?.httpBody,
-           let json = try? JSONSerialization.jsonObject(with: bodyData) as? [String: Any] {
-            XCTAssertNotNil(json["end"])
-            XCTAssertEqual(json["project"] as? Int, 5)
-            XCTAssertEqual(json["activity"] as? Int, 3)
-        }
+        let json = interceptedRequest?.jsonBody ?? [:]
+        XCTAssertFalse(json.isEmpty, "request body missing")
+        XCTAssertNotNil(json["end"])
+        XCTAssertEqual(json["project"] as? Int, 5)
+        XCTAssertEqual(json["activity"] as? Int, 3)
     }
 
     func testDeleteTimesheetRoute() {
