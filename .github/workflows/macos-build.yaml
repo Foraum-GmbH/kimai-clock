@@ -13,9 +13,6 @@ env:
   XCODE_PROJECT: "KimaiClock.xcodeproj"
   SCHEME: "KimaiClock"
   CONFIGURATION: "Release"
-  APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
-  APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
-  APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
 
 jobs:
   build-and-release:
@@ -62,8 +59,7 @@ jobs:
         GH_TOKEN: ${{ secrets.GH_PAT }}
 
     - name: Checkout repository
-      uses: actions/checkout@v7
-
+      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
     - name: Bump version and build number
       id: version_bump
       run: |
@@ -76,13 +72,13 @@ jobs:
         echo "new_build=$NEW_BUILD" >> $GITHUB_OUTPUT
 
     - name: Scan for secrets
-      uses: trufflesecurity/trufflehog@v3.97.9
+      uses: trufflesecurity/trufflehog@4dd8831c5f12599465d4d45c3c447b4018a34c85 # v3.97.9
       with:
         path: ./
         extra_args: --only-verified
 
     - name: Setup Xcode
-      uses: maxim-lobanov/setup-xcode@v1.7.0
+      uses: maxim-lobanov/setup-xcode@ed7a3b1fda3918c0306d1b724322adc0b8cc0a90 # v1.7.0
       with:
         xcode-version: latest-stable
         
@@ -90,17 +86,20 @@ jobs:
       run: brew install create-dmg
       
     - name: Import Code-Signing Certificates
-      uses: Apple-Actions/import-codesign-certs@v7.0.0
+      uses: Apple-Actions/import-codesign-certs@5142e029c445c10ffc7149d172e540235a065466 # v7.0.0
       with:
         p12-file-base64: ${{ secrets.CERTIFICATES_P12 }}
         p12-password: ${{ secrets.CERTIFICATES_P12_PASSWORD }}
 
     - name: Install Provisioning Profiles
+      env:
+        PROVISIONING_PROFILE_APP: ${{ secrets.PROVISIONING_PROFILE_APP }}
+        PROVISIONING_PROFILE_WIDGET: ${{ secrets.PROVISIONING_PROFILE_WIDGET }}
       run: |
         mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
 
-        echo "${{ secrets.PROVISIONING_PROFILE_APP }}" | base64 --decode > /tmp/app.provisionprofile
-        echo "${{ secrets.PROVISIONING_PROFILE_WIDGET }}" | base64 --decode > /tmp/widget.provisionprofile
+        echo "$PROVISIONING_PROFILE_APP" | base64 --decode > /tmp/app.provisionprofile
+        echo "$PROVISIONING_PROFILE_WIDGET" | base64 --decode > /tmp/widget.provisionprofile
 
         APP_UUID=$(security cms -D -i /tmp/app.provisionprofile | plutil -extract UUID raw -)
         WIDGET_UUID=$(security cms -D -i /tmp/widget.provisionprofile | plutil -extract UUID raw -)
@@ -112,6 +111,8 @@ jobs:
         echo "WIDGET_PROFILE_UUID=$WIDGET_UUID" >> $GITHUB_ENV
 
     - name: Decode Apple API Key
+      env:
+        APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
       run: |
         echo "Decoding APPLE_API_KEY..."
         if ! echo "$APPLE_API_KEY" | base64 --decode > AuthKey.p8; then
@@ -125,6 +126,9 @@ jobs:
         echo "AuthKey.p8 created successfully ($(wc -c < AuthKey.p8) bytes)"
 
     - name: Build App
+      env:
+        APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+        APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
       run: |
         xcodebuild \
           -project "$XCODE_PROJECT" \
@@ -139,6 +143,8 @@ jobs:
           archive
           
     - name: Export App
+      env:
+        APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
       run: |
         # Create ExportOptions.plist with manual signing using installed profiles
         cat > ExportOptions.plist << EOF
@@ -155,7 +161,7 @@ jobs:
             <key>signingCertificate</key>
             <string>Developer ID Application</string>
             <key>teamID</key>
-            <string>${{ secrets.APPLE_TEAM_ID }}</string>
+            <string>$APPLE_TEAM_ID</string>
             <key>provisioningProfiles</key>
             <dict>
                 <key>de.foraum.KimaiClock</key>
@@ -202,20 +208,25 @@ jobs:
         || echo "Warning: create-dmg completed with warnings (this is often normal)"
 
     - name: Sign DMG
+      env:
+        DEVELOPER_ID_APPLICATION: ${{ secrets.DEVELOPER_ID_APPLICATION }}
       run: |
         # Sign the DMG
-        codesign --force --sign "${{ secrets.DEVELOPER_ID_APPLICATION }}" "$APP_NAME.dmg"
+        codesign --force --sign "$DEVELOPER_ID_APPLICATION" "$APP_NAME.dmg"
         
         # Verify signing
         codesign --verify --verbose "$APP_NAME.dmg"
 
     - name: Notarize DMG
+      env:
+        APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+        APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
       run: |
         # Submit DMG for notarization
         xcrun notarytool submit "$APP_NAME.dmg" \
           --key AuthKey.p8 \
-          --key-id "${{ secrets.APPLE_API_KEY_ID }}" \
-          --issuer "${{ secrets.APPLE_API_ISSUER }}" \
+          --key-id "$APPLE_API_KEY_ID" \
+          --issuer "$APPLE_API_ISSUER" \
           --timeout 30m \
           --wait
           
@@ -244,7 +255,7 @@ jobs:
         echo "version=$VERSION" >> $GITHUB_OUTPUT
         
     - name: Create Release
-      uses: softprops/action-gh-release@v3.0.3
+      uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3
       with:
         tag_name: ${{ steps.release_info.outputs.tag_name }}
         name: ${{ steps.release_info.outputs.release_name }}
