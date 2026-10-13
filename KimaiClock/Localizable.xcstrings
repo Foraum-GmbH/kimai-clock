@@ -38,6 +38,23 @@
         }
       }
     },
+    "activity_label" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aufgabe"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Activity"
+          }
+        }
+      }
+    },
     "Add a note before stopping the timer." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -570,19 +587,19 @@
         }
       }
     },
-    "search_activities" : {
+    "search_projects" : {
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Aufgaben suchen"
+            "value" : "Projekte suchen"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Search Activities"
+            "value" : "Search Projects"
           }
         }
       }

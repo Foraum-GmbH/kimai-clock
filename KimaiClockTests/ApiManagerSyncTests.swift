@@ -93,17 +93,17 @@ final class ApiManagerSyncTests: XCTestCase {
 
     // MARK: - Search
 
-    func testSearchActivitysSendsTermAndLimitsResults() {
+    func testSearchProjectsSendsTermAndLimitsResults() {
         var interceptedRequest: URLRequest?
-        let activities = (1...10).map { #"{"id": \#($0), "name": "A\#($0)", "parentTitle": "P", "project": 1}"# }
+        let projects = (1...10).map { #"{"id": \#($0), "name": "P\#($0)"}"# }
         MockURLProtocol.requestHandler = { request in
             interceptedRequest = request
             let response = HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!
-            return (response, Data("[\(activities.joined(separator: ","))]".utf8))
+            return (response, Data("[\(projects.joined(separator: ","))]".utf8))
         }
 
         let expectation = expectation(description: "search")
-        apiManager.searchActivitys(query: "dev", 3)
+        apiManager.searchProjects(query: "kim", 3)
             .sink { result in
                 XCTAssertEqual(result.map(\.id), [1, 2, 3])
                 expectation.fulfill()
@@ -111,36 +111,42 @@ final class ApiManagerSyncTests: XCTestCase {
             .store(in: &cancellables)
         wait(for: [expectation], timeout: 2)
 
+        XCTAssertEqual(interceptedRequest?.url?.path, "/api/projects")
         let query = URLComponents(url: interceptedRequest!.url!, resolvingAgainstBaseURL: false)?.queryItems ?? []
-        XCTAssertEqual(query.first { $0.name == "term" }?.value, "dev")
+        XCTAssertEqual(query.first { $0.name == "term" }?.value, "kim")
         XCTAssertEqual(query.first { $0.name == "visible" }?.value, "1")
     }
 
-    func testSearchWithVirtualsExpandsGlobalActivitiesPerProject() {
+    func testFetchActivitiesAttachesSelectedProject() {
+        var interceptedRequest: URLRequest?
         MockURLProtocol.requestHandler = { request in
-            let json = request.url?.path == "/api/projects"
-                ? #"[{"id": 1, "name": "Alpha"}, {"id": 2, "name": "Beta"}]"#
-                : #"[{"id": 9, "name": "Support"}]"#
+            interceptedRequest = request
+            // one project activity and one global activity
+            let json = #"[{"id": 3, "name": "Coding", "parentTitle": "Alpha", "project": 7}, {"id": 9, "name": "Support"}]"#
             let response = HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!
             return (response, Data(json.utf8))
         }
 
-        let expectation = expectation(description: "virtuals")
-        apiManager.searchActivitiesWithVirtuals(query: "sup")
+        let expectation = expectation(description: "activities")
+        apiManager.fetchActivities(for: Project(id: 7, name: "Alpha"))
             .sink { result in
-                XCTAssertEqual(result.map(\.uniqueId), ["9-1", "9-2"])
-                XCTAssertEqual(result.map(\.parentTitle), ["Alpha", "Beta"])
+                XCTAssertEqual(result.map(\.uniqueId), ["3-7", "9-7"])
+                XCTAssertEqual(result.map(\.parentTitle), ["Alpha", "Alpha"])
                 expectation.fulfill()
             }
             .store(in: &cancellables)
         wait(for: [expectation], timeout: 2)
+
+        XCTAssertEqual(interceptedRequest?.url?.path, "/api/activities")
+        let query = URLComponents(url: interceptedRequest!.url!, resolvingAgainstBaseURL: false)?.queryItems ?? []
+        XCTAssertEqual(query.first { $0.name == "project" }?.value, "7")
     }
 
     func testSearchReturnsEmptyOnServerError() {
         respond(500, json: "nope")
 
         let expectation = expectation(description: "search error")
-        apiManager.searchActivitys(query: "x")
+        apiManager.searchProjects(query: "x")
             .sink { result in
                 XCTAssertTrue(result.isEmpty)
                 expectation.fulfill()

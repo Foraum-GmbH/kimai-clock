@@ -20,6 +20,8 @@ struct PopupView: View {
     @State private var isHovering = false
     @State private var pulse = false
     @State private var searchValue = ""
+    @State private var selectedProject: Project?
+    @State private var projectActivities: [Activity] = []
     @State private var showDescriptionAlert = false
     @State private var showEditDescriptionAlert = false
     @State private var timesheetDescription = ""
@@ -32,6 +34,37 @@ struct PopupView: View {
 
     private var isTimerRunning: Bool {
         (timerModel.isActive ?? false) || timerModel.timer != 0
+    }
+
+    /// Activity of the selected project that is currently active, written back as the active activity
+    private var activitySelection: Binding<Int?> {
+        Binding(
+            get: {
+                guard let active = apiManager.activeActivity, active.project == selectedProject?.id else { return nil }
+                return active.id
+            },
+            set: { id in
+                withAnimation(.easeInOut(duration: 0.25)) {
+                    apiManager.activeActivity = projectActivities.first { $0.id == id }
+                }
+            }
+        )
+    }
+
+    private func selectProject(_ project: Project) {
+        guard selectedProject?.id != project.id else {
+            selectedProject = nil
+            return
+        }
+
+        selectedProject = project
+        projectActivities = []
+        apiManager.fetchActivities(for: project)
+            .sink { activities in
+                guard selectedProject?.id == project.id else { return }
+                projectActivities = activities
+            }
+            .store(in: &subscriptionManager.cancellables)
     }
 
     private var shouldShowDescription: Bool {
@@ -234,10 +267,10 @@ struct PopupView: View {
             }
 
             HStack(alignment: .center, spacing: 0) {
-                Text(apiManager.activeActivity?.name ?? " ")
+                Text(apiManager.activeActivity.map { $0.parentTitle ?? "-" } ?? " ")
                     .font(.headline)
                     .foregroundColor(apiManager.activeActivity?.activityColor ?? Color.kimai)
-                Text(apiManager.activeActivity != nil ? " / " + (apiManager.activeActivity!.parentTitle ?? "-") : NSLocalizedString("select_activity", comment: ""))
+                Text(apiManager.activeActivity.map { " / " + $0.name } ?? NSLocalizedString("select_activity", comment: ""))
                     .font(.subheadline)
                     .foregroundColor(.secondary)
                 Spacer()
@@ -298,11 +331,11 @@ struct PopupView: View {
                         Divider()
                     }
 
-                    Text(NSLocalizedString("search_activities", comment: ""))
+                    Text(NSLocalizedString("search_projects", comment: ""))
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
 
-                    TextField(NSLocalizedString("search_activities", comment: ""), text: $searchValue)
+                    TextField(NSLocalizedString("search_projects", comment: ""), text: $searchValue)
                         .onChange(of: searchValue) { _, newValue in
                             searchSubject.send(newValue)
                         }
@@ -310,18 +343,34 @@ struct PopupView: View {
                             apiManager.bindSearch(to: searchSubject.eraseToAnyPublisher())
                         }
 
-                    ForEach(apiManager.searchResults, id: \.uniqueId) { activity in
-                        ActivityCell(
-                            activity: activity,
-                            isActive: apiManager.activeActivity?.uniqueId == activity.uniqueId,
-                            canBeRemoved: false,
-                            setActive: {
-                                withAnimation(.easeInOut(duration: 0.25)) {
-                                    apiManager.activeActivity = apiManager.activeActivity?.uniqueId == activity.uniqueId ? nil : activity
+                    ForEach(apiManager.searchResults) { project in
+                        let isSelected = selectedProject?.id == project.id
+
+                        Button {
+                            selectProject(project)
+                        } label: {
+                            HStack(alignment: .center, spacing: 0) {
+                                Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                                    .padding(.trailing, 4)
+                                Text(project.name)
+                                    .font(.headline)
+                                Spacer()
+                            }
+                        }
+                        .accessibilityElement(children: .combine)
+                        .accessibilityAddTraits(isSelected ? [.isButton, .isSelected] : [.isButton])
+                        .buttonStyle(.plain)
+
+                        if isSelected {
+                            Picker(NSLocalizedString("activity_label", comment: ""), selection: activitySelection) {
+                                Text(NSLocalizedString("select_activity", comment: "")).tag(Int?.none)
+                                ForEach(projectActivities, id: \.id) { activity in
+                                    Text(activity.name).tag(Int?.some(activity.id))
                                 }
-                            },
-                            remove: nil
-                        )
+                            }
+                            .pickerStyle(.menu)
+                            .padding(.leading, 20)
+                        }
                     }
                 }
                 .animation(.easeInOut(duration: 0.25), value: shouldShowDescription)

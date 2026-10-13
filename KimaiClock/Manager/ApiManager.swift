@@ -31,7 +31,7 @@ public struct Activity: Identifiable, Codable, Equatable {
     var timesheetId: Int?
 }
 
-struct Project: Decodable {
+struct Project: Decodable, Identifiable {
     let id: Int
     let name: String
 }
@@ -95,7 +95,7 @@ class ApiManager: ObservableObject {
     @AppStorage("serverIP") public var serverIP: String?
     @AppStorage("syncTimer") private var syncTimerOption: String?
 
-    @Published var searchResults: [Activity] = []
+    @Published var searchResults: [Project] = []
     @Published var serverVersion: String = "..."
     @Published var pendingDescription: String = ""
     @Published var activeActivity: Activity? {
@@ -265,79 +265,59 @@ class ApiManager: ObservableObject {
         publisher
             .debounce(for: .milliseconds(300), scheduler: RunLoop.main)
             .removeDuplicates()
-            .flatMap { [weak self] query -> AnyPublisher<[Activity], Never> in
+            .flatMap { [weak self] query -> AnyPublisher<[Project], Never> in
                 guard let self = self, !query.isEmpty else {
                     return Just([]).eraseToAnyPublisher()
                 }
-                return self.searchActivitiesWithVirtuals(query: query)
+                return self.searchProjects(query: query)
             }
             .receive(on: RunLoop.main)
             .assign(to: &$searchResults)
     }
 
-    func searchActivitiesWithVirtuals(query: String, maxSearchLength: Int = 6) -> AnyPublisher<[Activity], Never> {
-        return searchActivitys(query: query, maxSearchLength)
-            .flatMap { activities -> AnyPublisher<[Activity], Never> in
-                let needsVirtuals = activities.contains { $0.project == nil || $0.parentTitle == nil }
+    func searchProjects(query: String, _ maxSearchLength: Int = 6) -> AnyPublisher<[Project], Never> {
+        let queryItems = [
+            URLQueryItem(name: "orderBy", value: "name"),
+            URLQueryItem(name: "order", value: "ASC"),
+            URLQueryItem(name: "visible", value: "1"),
+            URLQueryItem(name: "term", value: query)
+        ]
 
-                guard needsVirtuals else {
-                    return Just(activities).eraseToAnyPublisher()
+        return getList("/api/projects", queryItems, of: Project.self)
+            .map { Array($0.prefix(maxSearchLength)) }
+            .eraseToAnyPublisher()
+    }
+
+    /// Activities bookable on a project, including global ones (Kimai returns both when filtering by project)
+    func fetchActivities(for project: Project) -> AnyPublisher<[Activity], Never> {
+        let queryItems = [
+            URLQueryItem(name: "orderBy", value: "name"),
+            URLQueryItem(name: "order", value: "ASC"),
+            URLQueryItem(name: "visible", value: "1"),
+            URLQueryItem(name: "project", value: String(project.id))
+        ]
+
+        return getList("/api/activities", queryItems, of: Activity.self)
+            .map { activities in
+                activities.map { activity in
+                    Activity(
+                        id: activity.id,
+                        name: activity.name,
+                        parentTitle: project.name,
+                        project: project.id,
+                        color: activity.color
+                    )
                 }
-
-                guard let baseURL = self.serverIP,
-                      let url = URL(string: "\(baseURL)/api/projects") else {
-                    return Just(activities).eraseToAnyPublisher()
-                }
-
-                var request = URLRequest(url: url)
-                request.httpMethod = "GET"
-                request.addValue("Bearer \(self.apiToken ?? "")", forHTTPHeaderField: "Authorization")
-                request.addValue("application/json", forHTTPHeaderField: "Accept")
-
-                return self.session.dataTaskPublisher(for: request)
-                    .receive(on: DispatchQueue.main)
-                    .map(\.data)
-                    .decode(type: [Project].self, decoder: JSONDecoder())
-                    .map { projects -> [Activity] in
-                        var result: [Activity] = []
-
-                        for activity in activities {
-                            if activity.project != nil, activity.parentTitle != nil {
-                                result.append(activity)
-                            } else {
-                                let virtuals = projects.map { project in
-                                    Activity(
-                                        id: activity.id,
-                                        name: activity.name,
-                                        parentTitle: project.name,
-                                        project: project.id,
-                                        color: activity.color
-                                    )
-                                }
-                                result.append(contentsOf: virtuals)
-                            }
-                        }
-
-                        return result
-                    }
-                    .replaceError(with: activities)
-                    .eraseToAnyPublisher()
             }
             .eraseToAnyPublisher()
     }
 
-    func searchActivitys(query: String, _ maxSearchLength: Int = 6) -> AnyPublisher<[Activity], Never> {
+    private func getList<Element: Decodable>(_ path: String, _ queryItems: [URLQueryItem], of _: Element.Type) -> AnyPublisher<[Element], Never> {
         guard let baseURL = serverIP,
-              var components = URLComponents(string: "\(baseURL)/api/activities") else {
+              var components = URLComponents(string: "\(baseURL)\(path)") else {
             return Just([]).eraseToAnyPublisher()
         }
-
-        components.queryItems = [
-            URLQueryItem(name: "orderBy", value: "name"),
-            URLQueryItem(name: "order", value: "DESC"),
-            URLQueryItem(name: "visible", value: "1"),
-            URLQueryItem(name: "term", value: query)
-        ]
+        components.queryItems = queryItems
 
         guard let url = components.url else {
             return Just([]).eraseToAnyPublisher()
@@ -353,10 +333,7 @@ class ApiManager: ObservableObject {
         return session.dataTaskPublisher(for: request)
             .receive(on: DispatchQueue.main)
             .map(\.data)
-            .decode(type: [Activity].self, decoder: JSONDecoder())
-            .map { activities in
-                Array(activities.prefix(maxSearchLength))
-            }
+            .decode(type: [Element].self, decoder: JSONDecoder())
             .replaceError(with: [])
             .eraseToAnyPublisher()
     }
