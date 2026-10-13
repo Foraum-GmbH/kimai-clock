@@ -602,8 +602,10 @@ struct PopupView: View {
         .onChange(of: popoverState.isPresented) { _, _ in
             openSection = "recent_activities"
         }
-        .onReceive(NotificationCenter.default.publisher(for: NSMenu.didEndTrackingNotification)) { _ in
-            if !contextMenuActionTaken {
+        .onReceive(NotificationCenter.default.publisher(for: NSMenu.didEndTrackingNotification)) { notification in
+            // picker menus mark their current selection, context menus don't -> keep the popover open for pickers
+            let isPickerMenu = (notification.object as? NSMenu)?.items.contains { $0.state == .on } ?? false
+            if !contextMenuActionTaken && !isPickerMenu {
                 closePopup()
             }
             contextMenuActionTaken = false
