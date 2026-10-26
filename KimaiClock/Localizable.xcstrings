@@ -212,6 +212,23 @@
         }
       }
     },
+    "fetch_server_timer_now" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aktiven Server-Timer jetzt abrufen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fetch active server timer now"
+          }
+        }
+      }
+    },
     "github_button" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -600,6 +617,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Select an Activity…"
+          }
+        }
+      }
+    },
+    "select_tags" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Schlagworte auswählen…"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Select Tags…"
           }
         }
       }

@@ -1,3 +1,4 @@
+internal import Combine
 import Foundation
 import XCTest
 @testable import KimaiClock
@@ -86,6 +87,26 @@ final class AppDelegateSleepTests: AppDelegateTestCase {
         XCTAssertNil(body(requests.last!)["begin"])
         XCTAssertEqual(delegate.apiManager.totalIdleOffset, 0)
         XCTAssertEqual(delegate.timerModel.timer, 3600, accuracy: 1)
+    }
+
+    func testResumeAfterSleepKeepsDescriptionAndTags() {
+        delegate.apiManager.activeActivity = coding
+        delegate.apiManager.sessionTags = ["billable"]
+        delegate.apiManager.pendingDescription = "Refactoring"
+        let started = expectation(description: "started")
+        delegate.apiManager.startActivity().sink { _ in started.fulfill() }.store(in: &cancellables)
+        wait(for: [started], timeout: 2)
+        delegate.timerModel.start(600)
+
+        delegate.handleWillSleep()
+        waitUntil { delegate.apiManager.activeTimesheetId == nil }
+        delegate.handleDidWake()
+        drainMainQueue()
+        answerAlert?(.continueDiscardIdle)
+        waitUntil { delegate.timerModel.isActive == true }
+
+        XCTAssertEqual(body(requests.last!)["tags"] as? String, "billable")
+        XCTAssertEqual(body(requests.last!)["description"] as? String, "Refactoring")
     }
 
     func testStopAfterSleepEndsSessionWithoutAnotherRequest() {

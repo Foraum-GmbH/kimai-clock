@@ -82,6 +82,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         ) { [weak self] _ in
             DispatchQueue.main.async {
                 self?.popoverState.isPresented = true
+                self?.startOutsideClickMonitor()
             }
         }
 
@@ -92,6 +93,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         ) { [weak self] _ in
             DispatchQueue.main.async {
                 self?.popoverState.isPresented = false
+                self?.stopOutsideClickMonitor()
             }
         }
 
@@ -409,6 +411,28 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             guard let self, self.sleepAbsenceStart == absenceStart, !self.alreadyDisplaysAlert else { return }
             self.askForIdleAction(idleStart: absenceStart)
         }
+    }
+
+    // MARK: - Popover
+
+    private var outsideClickMonitor: Any?
+
+    /// A transient popover misses clicks into other apps once a dropdown inside it was dismissed -> close it ourselves.
+    /// Global monitors only see events of other apps, clicks inside the popover or on the status item are unaffected.
+    private func startOutsideClickMonitor() {
+        guard outsideClickMonitor == nil else { return }
+        outsideClickMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown]) { [weak self] _ in
+            MainActor.assumeIsolated {
+                self?.popover.performClose(nil)
+            }
+        }
+    }
+
+    private func stopOutsideClickMonitor() {
+        if let outsideClickMonitor {
+            NSEvent.removeMonitor(outsideClickMonitor)
+        }
+        outsideClickMonitor = nil
     }
 
     private func startRemoteTimerProcess(remoteTime: Double) {

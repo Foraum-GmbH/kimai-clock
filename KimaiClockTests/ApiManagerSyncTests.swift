@@ -48,7 +48,7 @@ final class ApiManagerSyncTests: XCTestCase {
     func testCheckForRemoteTimerAdoptsRunningTimesheetWithDescription() {
         let begin = ISO8601DateFormatter().string(from: Date().addingTimeInterval(-3600))
         respond(json: """
-        [{"id": 77, "begin": "\(begin)", "description": "Remote note",
+        [{"id": 77, "begin": "\(begin)", "description": "Remote note", "tags": ["billable", "urgent"],
           "activity": {"id": 10, "name": "Coding", "color": "#ff0000"},
           "project": {"id": 20, "name": "Kimai"}}]
         """)
@@ -64,6 +64,7 @@ final class ApiManagerSyncTests: XCTestCase {
         XCTAssertEqual(apiManager.activeActivity?.uniqueId, "10-20")
         XCTAssertEqual(apiManager.activeActivity?.parentTitle, "Kimai")
         XCTAssertEqual(apiManager.sessionDescription, "Remote note")
+        XCTAssertEqual(apiManager.sessionTags, ["billable", "urgent"])
     }
 
     func testCheckForRemoteTimerStopsLocalTimerWhenRemoteStopped() {

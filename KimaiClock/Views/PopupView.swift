@@ -20,10 +20,12 @@ struct PopupView: View {
     @State private var isHovering = false
     @State private var pulse = false
     @State private var searchValue = ""
+    @FocusState private var isSearchFocused: Bool
     @State private var showDescriptionAlert = false
     @State private var showEditDescriptionAlert = false
     @State private var timesheetDescription = ""
     @State private var contextMenuActionTaken = false
+    @State private var isContextMenuOpen = false
 
     let closePopup: () -> Void
     let startRemoteTimerProcess: (Double) -> Void
@@ -32,6 +34,57 @@ struct PopupView: View {
 
     private var isTimerRunning: Bool {
         (timerModel.isActive ?? false) || timerModel.timer != 0
+    }
+
+    /// Suggestions for an empty search field only while it is focused
+    private var visibleSearchResults: [Activity] {
+        searchValue.isEmpty && !isSearchFocused ? [] : apiManager.searchResults
+    }
+
+    private var tagMenu: some View {
+        Menu {
+            ForEach(apiManager.tagOptions, id: \.self) { tag in
+                Toggle(tag, isOn: Binding(
+                    get: { apiManager.sessionTags.contains(tag) },
+                    set: { isOn in
+                        if isOn {
+                            apiManager.sessionTags.append(tag)
+                        } else {
+                            apiManager.sessionTags.removeAll { $0 == tag }
+                        }
+                    }
+                ))
+            }
+        } label: {
+            // the default menu style hugs its title, a plain button label can fill the width
+            HStack(spacing: 4) {
+                Text(apiManager.sessionTags.isEmpty
+                     ? NSLocalizedString("select_tags", comment: "")
+                     : apiManager.sessionTags.joined(separator: ", "))
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+                    .foregroundStyle(apiManager.sessionTags.isEmpty ? .secondary : .primary)
+                Spacer(minLength: 0)
+                Image(systemName: "chevron.up.chevron.down")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+            }
+            .padding(.horizontal, 6)
+            .padding(.vertical, 3)
+            .background(
+                RoundedRectangle(cornerRadius: 5)
+                    .fill(Color(nsColor: .controlBackgroundColor))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 5)
+                    .stroke(Color(nsColor: .separatorColor))
+            )
+            .contentShape(Rectangle())
+        }
+        .menuStyle(.button)
+        .buttonStyle(.plain)
+        // same rules as the description
+        .disabled(timerModel.isActive == true || apiManager.activeActivity == nil)
     }
 
     private var shouldShowDescription: Bool {
@@ -237,10 +290,14 @@ struct PopupView: View {
                 Text(apiManager.activeActivity?.name ?? " ")
                     .font(.headline)
                     .foregroundColor(apiManager.activeActivity?.activityColor ?? Color.kimai)
+                    .lineLimit(1)
+                    .layoutPriority(1)
                 Text(apiManager.activeActivity != nil ? " / " + (apiManager.activeActivity!.parentTitle ?? "-") : NSLocalizedString("select_activity", comment: ""))
                     .font(.subheadline)
                     .foregroundColor(.secondary)
-                Spacer()
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+                Spacer(minLength: 0)
             }
 
             if shouldShowDescription {
@@ -258,6 +315,11 @@ struct PopupView: View {
                         .textFieldStyle(RoundedBorderTextFieldStyle())
                         // editable before start and while paused (applies to the resumed timesheet)
                         .disabled(timerModel.isActive == true || apiManager.activeActivity == nil)
+
+                    // tags are global in Kimai -> no dropdown at all on servers without any
+                    if !apiManager.tagOptions.isEmpty {
+                        tagMenu
+                    }
                 }
                 .transition(.opacity.combined(with: .move(edge: .top)))
             }
@@ -303,14 +365,21 @@ struct PopupView: View {
                         .foregroundStyle(.secondary)
 
                     TextField(NSLocalizedString("search_activities", comment: ""), text: $searchValue)
+                        .focused($isSearchFocused)
                         .onChange(of: searchValue) { _, newValue in
                             searchSubject.send(newValue)
+                        }
+                        // an empty, focused field suggests the first activities as a hint what to search for
+                        .onChange(of: isSearchFocused) { _, focused in
+                            if focused && searchValue.isEmpty {
+                                searchSubject.send("")
+                            }
                         }
                         .onAppear {
                             apiManager.bindSearch(to: searchSubject.eraseToAnyPublisher())
                         }
 
-                    ForEach(apiManager.searchResults, id: \.uniqueId) { activity in
+                    ForEach(visibleSearchResults, id: \.uniqueId) { activity in
                         ActivityCell(
                             activity: activity,
                             isActive: apiManager.activeActivity?.uniqueId == activity.uniqueId,
@@ -340,17 +409,28 @@ struct PopupView: View {
                     Text(NSLocalizedString("sync_server_timer", comment: ""))
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
-                    Picker("", selection: $syncTimerOption) {
-                        ForEach(options, id: \.self) { option in
-                            Text(NSLocalizedString(option, comment: "")).tag(option)
+                    HStack(spacing: 6) {
+                        Picker("", selection: $syncTimerOption) {
+                            ForEach(options, id: \.self) { option in
+                                Text(NSLocalizedString(option, comment: "")).tag(option)
+                            }
                         }
+                            .labelsHidden()
+                            .padding(.leading, 0)
+                            .pickerStyle(.menu)
+                            .onChange(of: syncTimerOption, { _, _ in
+                                apiManager.setupSyncTimer(startRemoteTimerProcess)
+                            })
+
+                        // same as "fetch on open", but on demand and regardless of the selected option
+                        Button {
+                            apiManager.checkForRemoteTimer(force: true, startRemoteTimerProcess)
+                        } label: {
+                            Image(systemName: "arrow.clockwise")
+                        }
+                        .help(NSLocalizedString("fetch_server_timer_now", comment: ""))
+                        .accessibilityLabel(NSLocalizedString("fetch_server_timer_now", comment: ""))
                     }
-                        .labelsHidden()
-                        .padding(.leading, 0)
-                        .pickerStyle(.menu)
-                        .onChange(of: syncTimerOption, { _, _ in
-                            apiManager.setupSyncTimer(startRemoteTimerProcess)
-                        })
 
                     Spacer(minLength: 2)
 
@@ -550,13 +630,24 @@ struct PopupView: View {
         }
         .padding(15)
         .frame(width: 320)
-        .onChange(of: popoverState.isPresented) { _, _ in
+        .onChange(of: popoverState.isPresented) { _, isPresented in
             openSection = "recent_activities"
+            // tags may have been added in Kimai meanwhile
+            if isPresented {
+                apiManager.fetchTags()
+            }
+            // the popover may hand the first responder to the search field, suggestions only on a real click
+            isSearchFocused = false
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSMenu.didBeginTrackingNotification)) { _ in
+            isContextMenuOpen = NSEvent.opensContextMenu(NSApp.currentEvent)
         }
         .onReceive(NotificationCenter.default.publisher(for: NSMenu.didEndTrackingNotification)) { _ in
-            if !contextMenuActionTaken {
+            // only a context menu dismissed without an action closes the popover, dropdowns never do
+            if isContextMenuOpen && !contextMenuActionTaken {
                 closePopup()
             }
+            isContextMenuOpen = false
             contextMenuActionTaken = false
         }
         .overlay(

@@ -36,6 +36,10 @@ struct Project: Decodable {
     let name: String
 }
 
+struct Tag: Decodable {
+    let name: String
+}
+
 struct ServerVersion: Codable {
     let versionId: Int
     let copyright: String
@@ -48,12 +52,14 @@ struct Timesheet: Codable {
     let id: Int?
     let begin: String?
     var description: String?
+    var tags: [String]?
 }
 
 private struct TimesheetResponse: Codable {
     let id: Int
     let begin: String?
     let description: String?
+    let tags: [String]?
     let activity: ActivityResponse
     let project: ProjectResponse?
 
@@ -84,7 +90,8 @@ extension TimesheetResponse {
             activity: activity,
             id: id,
             begin: begin,
-            description: description
+            description: description,
+            tags: tags
         )
     }
 }
@@ -103,6 +110,7 @@ class ApiManager: ObservableObject {
             if oldValue?.uniqueId != activeActivity?.uniqueId {
                 // new or ended session -> forget the description of the previous one
                 sessionDescription = ""
+                sessionTags = []
                 lastTimesheetId = nil
             }
             syncToWidget()
@@ -111,6 +119,14 @@ class ApiManager: ObservableObject {
 
     /// Description of the current session. Survives a pause, so resuming reuses it.
     @Published private(set) var sessionDescription: String = ""
+    /// Tags of the current session, editable before start and while paused. Survive a pause like the description.
+    @Published var sessionTags: [String] = []
+    @Published var availableTags: [String] = []
+
+    /// Tags offered for selection. Tags of a remote timer may be missing from the fetched list -> include them too.
+    var tagOptions: [String] {
+        availableTags + sessionTags.filter { !availableTags.contains($0) }
+    }
 
     private func syncToWidget() {
         WidgetSync.save(activity: activeActivity)
@@ -182,9 +198,12 @@ class ApiManager: ObservableObject {
 
     // MARK: - API methods
 
-    func checkForRemoteTimer(_ onOpen: Bool = false, _ callback: @escaping (Double) -> Void) {
-        if syncTimerOption == "sync_on_open" && !onOpen { return }
-        if syncTimerOption != "sync_on_open" && onOpen { return }
+    /// - Parameter force: fetch regardless of the selected sync option (manual "fetch now")
+    func checkForRemoteTimer(_ onOpen: Bool = false, force: Bool = false, _ callback: @escaping (Double) -> Void) {
+        if !force {
+            if syncTimerOption == "sync_on_open" && !onOpen { return }
+            if syncTimerOption != "sync_on_open" && onOpen { return }
+        }
 
         guard let baseURL = serverIP,
               let url = URL(string: "\(baseURL)/api/timesheets/active") else { return }
@@ -219,6 +238,7 @@ class ApiManager: ObservableObject {
                         self.activeTimesheetId = timesheetId
                         self.activeActivity = timer.activity
                         self.sessionDescription = timer.description ?? ""
+                        self.sessionTags = timer.tags ?? []
 
                         let beginDate = self.secondsFormatter.date(from: timer.begin ?? "") ?? Date()
                         let now = Date()
@@ -261,13 +281,21 @@ class ApiManager: ObservableObject {
             }
     }
 
+    static let suggestionCount = 6
+
     func bindSearch(to publisher: AnyPublisher<String, Never>) {
         publisher
             .debounce(for: .milliseconds(300), scheduler: RunLoop.main)
             .removeDuplicates()
             .flatMap { [weak self] query -> AnyPublisher<[Activity], Never> in
-                guard let self = self, !query.isEmpty else {
+                guard let self = self else {
                     return Just([]).eraseToAnyPublisher()
+                }
+                guard !query.isEmpty else {
+                    // empty (focused) search field -> the first activities as suggestions
+                    return self.searchActivitiesWithVirtuals(query: "")
+                        .map { Array($0.prefix(Self.suggestionCount)) }
+                        .eraseToAnyPublisher()
                 }
                 return self.searchActivitiesWithVirtuals(query: query)
             }
@@ -334,10 +362,13 @@ class ApiManager: ObservableObject {
 
         components.queryItems = [
             URLQueryItem(name: "orderBy", value: "name"),
-            URLQueryItem(name: "order", value: "DESC"),
-            URLQueryItem(name: "visible", value: "1"),
-            URLQueryItem(name: "term", value: query)
+            // suggestions read better alphabetically
+            URLQueryItem(name: "order", value: query.isEmpty ? "ASC" : "DESC"),
+            URLQueryItem(name: "visible", value: "1")
         ]
+        if !query.isEmpty {
+            components.queryItems?.append(URLQueryItem(name: "term", value: query))
+        }
 
         guard let url = components.url else {
             return Just([]).eraseToAnyPublisher()
@@ -358,6 +389,53 @@ class ApiManager: ObservableObject {
                 Array(activities.prefix(maxSearchLength))
             }
             .replaceError(with: [])
+            .eraseToAnyPublisher()
+    }
+
+    func fetchTags() {
+        // /find needs a name filter, an empty term matches all visible tags
+        getJSON("/api/tags/find", [URLQueryItem(name: "name", value: "")], as: [Tag].self)
+            .flatMap { [weak self] tags -> AnyPublisher<[String], Never> in
+                if let tags, !tags.isEmpty {
+                    return Just(tags.map(\.name)).eraseToAnyPublisher()
+                }
+                guard let self else { return Just([]).eraseToAnyPublisher() }
+                // older servers: fall back to the (deprecated) plain list of tag names
+                return self.getJSON("/api/tags", [], as: [String].self)
+                    .map { $0 ?? [] }
+                    .eraseToAnyPublisher()
+            }
+            .assign(to: &$availableTags)
+    }
+
+    /// GET request decoding the response, nil on any failure
+    private func getJSON<T: Decodable>(_ path: String, _ queryItems: [URLQueryItem], as _: T.Type) -> AnyPublisher<T?, Never> {
+        guard let baseURL = serverIP,
+              var components = URLComponents(string: "\(baseURL)\(path)") else {
+            return Just(nil).eraseToAnyPublisher()
+        }
+        if !queryItems.isEmpty {
+            components.queryItems = queryItems
+        }
+        guard let url = components.url else {
+            return Just(nil).eraseToAnyPublisher()
+        }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        request.addValue("Bearer \(apiToken ?? "")", forHTTPHeaderField: "Authorization")
+        request.addValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.addValue("application/json", forHTTPHeaderField: "Accept")
+        request.addValue("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36 KimaiClock", forHTTPHeaderField: "User-Agent")
+
+        return session.dataTaskPublisher(for: request)
+            .receive(on: DispatchQueue.main)
+            .map(\.data)
+            .decode(type: T?.self, decoder: JSONDecoder())
+            .catch { error -> Just<T?> in
+                print("Failed to fetch \(path):", error)
+                return Just(nil)
+            }
             .eraseToAnyPublisher()
     }
 
@@ -391,6 +469,9 @@ class ApiManager: ObservableObject {
         }
         if let begin {
             body["begin"] = secondsFormatter.string(from: begin)
+        }
+        if !sessionTags.isEmpty {
+            body["tags"] = sessionTags.joined(separator: ",")
         }
         request.httpBody = try? JSONSerialization.data(withJSONObject: body)
 

@@ -7,7 +7,7 @@ A native macOS menu bar app for Kimai 2 time tracking.
 [![Kimai](https://img.shields.io/badge/Kimai-2.x-007acc)](https://www.kimai.org/)
 [![Notarized](https://img.shields.io/badge/Apple-Notarized-success)](https://developer.apple.com/developer-id/)
 [![License](https://img.shields.io/badge/License-MIT-gray)](./LICENSE.md)
-[![Tests](https://img.shields.io/badge/Tests-105-success)](#testing)
+[![Tests](https://img.shields.io/badge/Tests-153-success)](#testing)
 [![Coverage](https://img.shields.io/badge/Coverage%20(logic)-77%25-success)](#testing)
 
 ![App Overview](https://github.com/Foraum-GmbH/kimai-clock/blob/main/assets/hero.jpeg?raw=true)
@@ -23,6 +23,8 @@ KimaiClock brings your [Kimai](https://www.kimai.org/) time tracking into the ma
 
 - **Menu Bar Control**: Start, pause, resume, and stop timesheets directly from the status item.
 - **In-Place Descriptions**: Add or update timesheet notes on the fly without visiting the web interface.
+- **Tags**: Pick Kimai tags for a timesheet before starting or while paused; they are kept across pauses. The picker only appears when your Kimai server has tags.
+- **Server Sync**: Picks up timers started in the web UI or on your phone on open, on an interval, or on demand via the refresh button in Settings.
 - **Recent Activities**: Reopen and resume recent tasks with a single click.
 - **Smart Idle Detection**: Detects system inactivity, prompts upon return, and retroactively adjusts logged duration.
 - **App Launch Reminders**: Prompts you to start tracking when selected developer tools (VS Code, PhpStorm, Xcode) launch.
