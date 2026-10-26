@@ -72,7 +72,7 @@ jobs:
         echo "new_build=$NEW_BUILD" >> $GITHUB_OUTPUT
 
     - name: Scan for secrets
-      uses: trufflesecurity/trufflehog@4dd8831c5f12599465d4d45c3c447b4018a34c85 # v3.97.9
+      uses: trufflesecurity/trufflehog@e76dff8a7e57d6df0c60ad8cbf5d5cba505a8fc9 # v3.99.2
       with:
         path: ./
         extra_args: --only-verified
@@ -86,7 +86,7 @@ jobs:
       run: brew install create-dmg
       
     - name: Import Code-Signing Certificates
-      uses: Apple-Actions/import-codesign-certs@5142e029c445c10ffc7149d172e540235a065466 # v7.0.0
+      uses: Apple-Actions/import-codesign-certs@77ba2a2a8f5cfc8c405ebf3159f767c323e238f9 # v7.1.0
       with:
         p12-file-base64: ${{ secrets.CERTIFICATES_P12 }}
         p12-password: ${{ secrets.CERTIFICATES_P12_PASSWORD }}
