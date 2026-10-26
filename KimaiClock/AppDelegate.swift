@@ -61,7 +61,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             queue: .main
         ) { [weak self] _ in
             MainActor.assumeIsolated {
-                self?.isSystemSleeping = true
                 self?.handleWillSleep()
             }
         }
@@ -72,7 +71,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             queue: .main
         ) { [weak self] _ in
             MainActor.assumeIsolated {
-                self?.isSystemSleeping = false
                 self?.handleDidWake()
             }
         }
@@ -235,39 +233,47 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 self.alreadyDisplaysAlert == false
             else { return }
 
-            let idleDuration = idleEnd.timeIntervalSince(idleStart)
-
             self.timerModel.pause()
-            self.timerModel.timer = max(0, self.timerModel.timer - idleDuration)
+            self.timerModel.timer = max(0, self.timerModel.timer - idleEnd.timeIntervalSince(idleStart))
             self.updateStatusBarTitle()
             self.iconModel.setSystemIcon("play.circle")
+            self.askForIdleAction(idleStart: idleStart)
+        }
+    }
 
-            if let remembered = IdleAction.remembered {
-                self.userIdleManager?.reset()
-                self.handleIdleAction(remembered, idleStart: idleStart)
-                return
-            }
+    /// Applies the remembered idle action or asks the user how to handle the absence since `idleStart`
+    func askForIdleAction(idleStart: Date) {
+        if let remembered = IdleAction.remembered {
+            userIdleManager?.reset()
+            handleIdleAction(remembered, idleStart: idleStart)
+            return
+        }
 
-            ChimeManager.shared.play(.pause)
-            self.alreadyDisplaysAlert = true
-            self.pendingIdleStart = idleStart
+        ChimeManager.shared.play(.pause)
+        alreadyDisplaysAlert = true
+        pendingIdleStart = idleStart
 
-            let idleMinutes = max(1, Int(idleDuration / 60))
+        let idleMinutes = max(1, Int(Date().timeIntervalSince(idleStart) / 60))
 
-            showIdleAlert(idleStartTime: idleStart, idleMinutes: idleMinutes) { [weak self] selectedAction in
-                guard let self else { return }
+        idleAlertPresenter(idleStart, idleMinutes) { [weak self] selectedAction in
+            guard let self else { return }
 
-                self.alreadyDisplaysAlert = false
-                self.pendingIdleStart = nil
-                self.userIdleManager?.reset()
-                self.handleIdleAction(selectedAction, idleStart: idleStart)
-            }
+            self.alreadyDisplaysAlert = false
+            self.pendingIdleStart = nil
+            self.userIdleManager?.reset()
+            self.handleIdleAction(selectedAction, idleStart: idleStart)
         }
     }
 
     func handleIdleAction(_ action: IdleAction, idleStart: Date) {
-        // session may have ended meanwhile (e.g. stopped on sleep while the alert was open)
-        guard apiManager.activeActivity != nil, timerModel.timer != 0 else { return }
+        // session may have ended or been resumed by hand meanwhile
+        guard apiManager.activeActivity != nil, timerModel.isActive == false else { return }
+
+        if sleepAbsenceStart != nil {
+            sleepAbsenceStart = nil
+            handleIdleActionAfterSleep(action, idleStart: idleStart, retries: 5)
+            return
+        }
 
         switch action {
         case .continueDiscardIdle:
@@ -293,6 +299,56 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
+    /// The timesheet was stopped at sleep (or still has to be) -> continuing starts a new one
+    private func handleIdleActionAfterSleep(_ action: IdleAction, idleStart: Date, retries: Int) {
+        // no-op if the stop on sleep already went through
+        apiManager.stopActivity(at: idleStart)
+            .sink { [weak self] success in
+                guard let self, self.apiManager.activeActivity != nil else { return }
+
+                guard success else {
+                    // network is usually not back right after wake -> retry a few times
+                    if retries > 0 {
+                        DispatchQueue.main.asyncAfter(deadline: .now() + self.sleepRetryDelay) {
+                            self.handleIdleActionAfterSleep(action, idleStart: idleStart, retries: retries - 1)
+                        }
+                    } else {
+                        // session stays paused, play / stop in the popover can be retried by hand
+                        ChimeManager.shared.play(.error)
+                    }
+                    return
+                }
+
+                switch action {
+                case .continueDiscardIdle:
+                    self.resumeAfterSleep(begin: nil)
+                case .continueKeepIdle:
+                    // new timesheet starts at the absence start, right where the stopped one ended
+                    self.resumeAfterSleep(begin: idleStart)
+                case .stopTimer:
+                    self.applyStoppedState()
+                }
+            }
+            .store(in: &cancellables)
+    }
+
+    private func resumeAfterSleep(begin: Date?) {
+        apiManager.startActivity(begin: begin)
+            .sink { [weak self] id in
+                guard let self else { return }
+                guard id != nil else {
+                    ChimeManager.shared.play(.error)
+                    return
+                }
+
+                if let begin {
+                    self.timerModel.timer += Date().timeIntervalSince(begin)
+                }
+                self.resumeAfterIdle()
+            }
+            .store(in: &cancellables)
+    }
+
     private func resumeAfterIdle(chime: ChimeType = .start) {
         timerModel.start()
         timerModel.isActive = true
@@ -312,44 +368,47 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     // MARK: - Sleep handling
 
-    /// Sleep start of a session that still has to be stopped on the server
-    private(set) var pendingSleepStop: Date?
-    private var isSystemSleeping = false
+    /// Absence start of a session interrupted by sleep, until the user decided how to continue
+    private(set) var sleepAbsenceStart: Date?
     /// Start of an idle period whose alert is still open
     var pendingIdleStart: Date?
+    // internal so unit tests can replace the modal alert, the HID idle time and the retry delay
+    var idleAlertPresenter: (Date, Int, @escaping (IdleAction) -> Void) -> Void = { idleStart, idleMinutes, callback in
+        showIdleAlert(idleStartTime: idleStart, idleMinutes: idleMinutes, callback: callback)
+    }
+    var systemIdleTime: () -> TimeInterval = UserIdleManager.systemIdleTime
+    var sleepRetryDelay: TimeInterval = 5
 
     func handleWillSleep() {
-        guard timerModel.timer != 0 else { return }
+        // a paused session has no running timesheet and simply stays paused
+        guard apiManager.activeActivity != nil,
+              timerModel.isActive == true || pendingIdleStart != nil else { return }
 
-        let sleepStart = pendingIdleStart ?? Date()
-        pendingSleepStop = sleepStart
-        timerModel.pause()
-        stopAfterSleep(at: sleepStart, retries: 0)
+        // the display often sleeps before the idle threshold is reached -> the absence starts with the last input
+        let absenceStart = pendingIdleStart ?? Date().addingTimeInterval(-systemIdleTime())
+
+        if timerModel.isActive == true {
+            timerModel.pause()
+            timerModel.timer = max(0, timerModel.timer - Date().timeIntervalSince(absenceStart))
+            iconModel.setSystemIcon("play.circle")
+            updateStatusBarTitle()
+        }
+
+        sleepAbsenceStart = absenceStart
+        // stop right away, so a Mac that does not wake up again leaves no running timesheet behind
+        apiManager.stopActivity(at: absenceStart)
+            .sink { _ in }
+            .store(in: &cancellables)
     }
 
     func handleDidWake() {
-        guard let sleepStart = pendingSleepStop else { return }
-        // network is usually not back right after wake -> retry a few times
-        stopAfterSleep(at: sleepStart, retries: 5)
-    }
+        guard let absenceStart = sleepAbsenceStart else { return }
 
-    private func stopAfterSleep(at sleepStart: Date, retries: Int) {
-        apiManager.stopActivity(at: sleepStart)
-            .sink { [weak self] success in
-                guard let self, self.pendingSleepStop == sleepStart else { return }
-
-                if success {
-                    self.pendingSleepStop = nil
-                    self.applyStoppedState()
-                } else if retries > 0 {
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
-                        self.stopAfterSleep(at: sleepStart, retries: retries - 1)
-                    }
-                } else if !self.isSystemSleeping {
-                    ChimeManager.shared.play(.error)
-                }
-            }
-            .store(in: &cancellables)
+        // an idle alert that is still open covers the sleep as well
+        DispatchQueue.main.async { [weak self] in
+            guard let self, self.sleepAbsenceStart == absenceStart, !self.alreadyDisplaysAlert else { return }
+            self.askForIdleAction(idleStart: absenceStart)
+        }
     }
 
     private func startRemoteTimerProcess(remoteTime: Double) {
@@ -394,17 +453,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     @objc func handleRightClick(_ sender: NSStatusBarButton) {
-        guard let isActive = timerModel.isActive else { return }
+        guard let isActive = timerModel.isActive, apiManager.activeActivity != nil else { return }
 
         popover.performClose(sender)
 
-        if isActive {
-            timerModel.pause()
-            iconModel.setSystemIcon("play.circle")
-        } else {
-            timerModel.start()
-            iconModel.setSystemIcon("pause.circle")
-        }
+        // same as the play / pause button: pausing ends the running timesheet, resuming starts a new one
+        handleQuickAction(isActive ? .pause : .startLast())
     }
 
     enum QuickAction: Equatable {

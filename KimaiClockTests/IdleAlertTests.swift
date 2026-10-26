@@ -3,10 +3,10 @@ import XCTest
 
 @MainActor
 final class IdleAlertTests: XCTestCase {
-    override func tearDown() {
+    override func tearDown() async throws {
         UserDefaults.standard.removeObject(forKey: IdleAction.rememberKey)
         UserDefaults.standard.removeObject(forKey: IdleAction.rememberedActionKey)
-        super.tearDown()
+        try await super.tearDown()
     }
 
     func testIdleActionRawValueRoundTrip() {

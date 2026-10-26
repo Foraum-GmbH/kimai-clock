@@ -37,7 +37,7 @@ KimaiClock brings your [Kimai](https://www.kimai.org/) time tracking into the ma
 
 - **Left click**: Open or close the popover.
 - **Left click and hold**: Open the Kimai web dashboard in your default browser.
-- **Right click**: Toggle play/pause for the active task.
+- **Right click**: Toggle play/pause for the active task (same as the play/pause button: pausing stops the timesheet on the server, resuming starts a new one).
 
 ### Stop Button Context Menu
 
@@ -58,7 +58,7 @@ KimaiClock monitors system idle time while an activity is running. When you retu
 
 Tick **Remember my choice** to apply the same option automatically next time; *Reset alerts* in Settings brings the dialog back. You can configure or disable the idle threshold in Settings.
 
-When your Mac goes to sleep, the running timesheet is stopped at the moment of sleep, just like on quit or shutdown.
+When your Mac goes to sleep, the running timesheet is stopped on the server at your last input before sleep (the display often turns off before the idle threshold is reached), so nothing keeps running while the Mac is off. The session itself stays paused in KimaiClock and the same dialog appears after wake: continuing starts a new timesheet, either now or (when keeping the idle time) right where the stopped one ended.
 
 ## Installation
 

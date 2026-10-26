@@ -3,10 +3,10 @@ import XCTest
 
 @MainActor
 final class WidgetSyncTests: XCTestCase {
-    override func tearDown() {
+    override func tearDown() async throws {
         WidgetSync.save(activity: nil)
         WidgetSync.save(timer: 0, isActive: nil)
-        super.tearDown()
+        try await super.tearDown()
     }
 
     func testSaveActivityWithParentTitle() {

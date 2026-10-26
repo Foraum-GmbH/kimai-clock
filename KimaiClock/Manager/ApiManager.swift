@@ -361,7 +361,9 @@ class ApiManager: ObservableObject {
             .eraseToAnyPublisher()
     }
 
-    func startActivity(description: String? = nil) -> AnyPublisher<Int?, Never> {
+    /// Starts a timesheet for the active activity.
+    /// - Parameter begin: explicit start time (e.g. resuming after sleep while keeping the absence), defaults to now
+    func startActivity(description: String? = nil, begin: Date? = nil) -> AnyPublisher<Int?, Never> {
         guard let activeActivity,
               let baseURL = serverIP,
               let url = URL(string: "\(baseURL)/api/timesheets") else {
@@ -386,6 +388,9 @@ class ApiManager: ObservableObject {
         ]
         if !trimmedDescription.isEmpty {
             body["description"] = trimmedDescription
+        }
+        if let begin {
+            body["begin"] = secondsFormatter.string(from: begin)
         }
         request.httpBody = try? JSONSerialization.data(withJSONObject: body)
 
@@ -508,7 +513,8 @@ class ApiManager: ObservableObject {
             .map { ($0.response as? HTTPURLResponse)?.statusCode == 200 }
             .replaceError(with: false)
             .map { [weak self] success in
-                if success {
+                // a late response must not clear a timesheet that was started meanwhile
+                if success, self?.activeTimesheetId == id {
                     self?.lastTimesheetId = id
                     self?.activeTimesheetId = nil
                     self?.totalIdleOffset = 0
@@ -548,7 +554,8 @@ class ApiManager: ObservableObject {
             .map { ($0.response as? HTTPURLResponse)?.statusCode == 200 }
             .replaceError(with: false)
             .map { [weak self] success in
-                if success {
+                // a late response must not clear a timesheet that was started meanwhile
+                if success, self?.activeTimesheetId == id {
                     self?.lastTimesheetId = id
                     self?.activeTimesheetId = nil
                     self?.totalIdleOffset = 0

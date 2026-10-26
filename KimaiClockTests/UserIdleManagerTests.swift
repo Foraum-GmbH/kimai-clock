@@ -73,4 +73,26 @@ final class UserIdleManagerTests: XCTestCase {
 
         XCTAssertEqual(count, 2)
     }
+
+    func testSystemIdleTimeReadsHIDIdleTime() {
+        let idleTime = UserIdleManager.systemIdleTime()
+
+        XCTAssertGreaterThanOrEqual(idleTime, 0)
+        XCTAssertLessThan(idleTime, 365 * 24 * 3600)
+    }
+
+    func testIdleStartIsReportedRelativeToIdleTime() {
+        var reported: (Date, Date)?
+        let manager = UserIdleManager(
+            threshold: 60,
+            checkInterval: 3600,
+            idleTimeProvider: { 300 },
+            onIdle: { start, end in reported = (start, end) }
+        )
+        defer { manager.stop() }
+
+        manager.checkIdle()
+
+        XCTAssertEqual(reported.map { $0.1.timeIntervalSince($0.0) } ?? 0, 300, accuracy: 0.01)
+    }
 }

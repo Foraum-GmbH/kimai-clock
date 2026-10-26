@@ -35,7 +35,7 @@ For a detailed list of changes, bug fixes, and new features in each release, see
 
 - **Left click** → Open/close the popup
 - **Left long press** → Open your Kimai server page in the default browser
-- **Right click** → Toggle play/pause for the active task
+- **Right click** → Toggle play/pause for the active task (pausing stops the timesheet on the server, resuming starts a new one)
 
 ## ✋ Stop Button Context Menu
 
@@ -50,10 +50,13 @@ Right-clicking the stop button inside the popup opens a context menu with two ad
 
 KimaiClock detects when your Mac has been idle for a configurable period while a timer is running. When you return, an alert lets you decide what to do:
 
-- **Continue** — resume the timer as if nothing happened
+- **Continue without idle time** — keep the timer running and deduct the absence from the timesheet
+- **Continue and keep idle time** — keep the timer running and count the absence (e.g. a phone call)
 - **Stop** — stop and save the timesheet up to the point you went idle
 
-The idle threshold can be configured in Settings. A **"Don't show again"** checkbox is available if you prefer to manage this manually.
+The idle threshold can be configured in Settings. Tick **"Remember my choice"** to apply the same option automatically next time; *Reset alerts* in Settings brings the dialog back.
+
+When your Mac goes to sleep, the timesheet is stopped on the server at your last input before sleep. The session stays paused in KimaiClock and the same alert appears after wake.
 
 ## 🚀 Installation
 

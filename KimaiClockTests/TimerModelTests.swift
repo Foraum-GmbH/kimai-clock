@@ -5,15 +5,15 @@ import XCTest
 final class TimerModelTests: XCTestCase {
     var timerModel: TimerModel!
 
-    override func setUp() {
-        super.setUp()
+    override func setUp() async throws {
+        try await super.setUp()
         timerModel = TimerModel()
     }
 
-    override func tearDown() {
+    override func tearDown() async throws {
         timerModel.stop()
         timerModel = nil
-        super.tearDown()
+        try await super.tearDown()
     }
 
     func testInitialState() {

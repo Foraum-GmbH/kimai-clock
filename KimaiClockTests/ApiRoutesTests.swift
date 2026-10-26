@@ -3,7 +3,8 @@ import Foundation
 import XCTest
 @testable import KimaiClock
 
-class MockURLProtocol: URLProtocol {
+// URLProtocol instances are only touched by URLSession's loading machinery, one request each
+class MockURLProtocol: URLProtocol, @unchecked Sendable {
     nonisolated(unsafe) static var requestHandler: ((URLRequest) throws -> (HTTPURLResponse, Data))?
 
     override class func canInit(with request: URLRequest) -> Bool {
@@ -15,13 +16,18 @@ class MockURLProtocol: URLProtocol {
     }
 
     override func startLoading() {
-        guard let handler = MockURLProtocol.requestHandler else {
+        guard MockURLProtocol.requestHandler != nil else {
             client?.urlProtocol(self, didFailWithError: URLError(.badServerResponse))
             return
         }
 
         DispatchQueue.global().async { [weak self] in
             guard let self else { return }
+            // read the handler here instead of capturing it, the closure itself is not Sendable
+            guard let handler = MockURLProtocol.requestHandler else {
+                self.client?.urlProtocol(self, didFailWithError: URLError(.badServerResponse))
+                return
+            }
             do {
                 let (response, data) = try handler(self.request)
                 self.client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
@@ -42,8 +48,8 @@ final class ApiRoutesTests: XCTestCase {
     var mockSession: URLSession!
     var cancellables = Set<AnyCancellable>()
 
-    override func setUp() {
-        super.setUp()
+    override func setUp() async throws {
+        try await super.setUp()
         cancellables.removeAll()
 
         let config = URLSessionConfiguration.ephemeral
@@ -54,12 +60,12 @@ final class ApiRoutesTests: XCTestCase {
         apiManager.serverIP = "https://demo.kimai.org"
     }
 
-    override func tearDown() {
+    override func tearDown() async throws {
         MockURLProtocol.requestHandler = nil
         cancellables.removeAll()
         apiManager = nil
         mockSession = nil
-        super.tearDown()
+        try await super.tearDown()
     }
 
     func testGetVersionRoute() {

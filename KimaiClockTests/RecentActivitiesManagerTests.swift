@@ -5,16 +5,16 @@ import XCTest
 final class RecentActivitiesManagerTests: XCTestCase {
     var manager: RecentActivitiesManager!
 
-    override func setUp() {
-        super.setUp()
+    override func setUp() async throws {
+        try await super.setUp()
         manager = RecentActivitiesManager()
         manager.clearAll()
     }
 
-    override func tearDown() {
+    override func tearDown() async throws {
         manager.clearAll()
         manager = nil
-        super.tearDown()
+        try await super.tearDown()
     }
 
     private func createActivity(id: Int, project: Int = 1, name: String = "Test Activity") -> Activity {

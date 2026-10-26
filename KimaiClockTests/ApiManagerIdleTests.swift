@@ -9,8 +9,8 @@ final class ApiManagerIdleTests: XCTestCase {
     var mockSession: URLSession!
     var cancellables = Set<AnyCancellable>()
 
-    override func setUp() {
-        super.setUp()
+    override func setUp() async throws {
+        try await super.setUp()
         cancellables.removeAll()
 
         let config = URLSessionConfiguration.ephemeral
@@ -21,12 +21,12 @@ final class ApiManagerIdleTests: XCTestCase {
         apiManager.serverIP = "https://demo.kimai.org"
     }
 
-    override func tearDown() {
+    override func tearDown() async throws {
         MockURLProtocol.requestHandler = nil
         cancellables.removeAll()
         apiManager = nil
         mockSession = nil
-        super.tearDown()
+        try await super.tearDown()
     }
 
     func testStopActivityWithTotalIdleOffsetRoutesThroughStopActivityAt() {

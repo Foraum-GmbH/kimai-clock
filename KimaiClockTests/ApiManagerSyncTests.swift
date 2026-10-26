@@ -13,8 +13,8 @@ final class ApiManagerSyncTests: XCTestCase {
         id: 10, name: "Coding", parentTitle: "Kimai", project: 20, color: nil, timesheetId: nil
     )
 
-    override func setUp() {
-        super.setUp()
+    override func setUp() async throws {
+        try await super.setUp()
         storedSyncOption = UserDefaults.standard.string(forKey: "syncTimer")
         UserDefaults.standard.set("sync_on_open", forKey: "syncTimer")
 
@@ -24,7 +24,7 @@ final class ApiManagerSyncTests: XCTestCase {
         apiManager.serverIP = "https://demo.kimai.org"
     }
 
-    override func tearDown() {
+    override func tearDown() async throws {
         MockURLProtocol.requestHandler = nil
         cancellables.removeAll()
         apiManager = nil
@@ -33,7 +33,7 @@ final class ApiManagerSyncTests: XCTestCase {
         } else {
             UserDefaults.standard.removeObject(forKey: "syncTimer")
         }
-        super.tearDown()
+        try await super.tearDown()
     }
 
     private func respond(_ status: Int = 200, json: String) {

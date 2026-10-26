@@ -38,7 +38,8 @@ final class UserIdleManager {
         timer = nil
     }
 
-    private func systemIdleTime() -> TimeInterval {
+    /// Seconds since the last keyboard / mouse input
+    nonisolated static func systemIdleTime() -> TimeInterval {
         var iterator: io_iterator_t = 0
         let result = IOServiceGetMatchingServices(kIOMainPortDefault, IOServiceMatching("IOHIDSystem"), &iterator)
         guard result == KERN_SUCCESS, let entry = IOIteratorNext(iterator) as io_registry_entry_t? else {
@@ -61,7 +62,7 @@ final class UserIdleManager {
     }
 
     func checkIdle() {
-        let idleTime = idleTimeProvider?() ?? systemIdleTime()
+        let idleTime = idleTimeProvider?() ?? Self.systemIdleTime()
 
         if idleTime < idleThreshold {
             hasTriggered = false

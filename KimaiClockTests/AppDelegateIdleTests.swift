@@ -3,104 +3,8 @@ import Foundation
 import XCTest
 @testable import KimaiClock
 
-/// Thread-safe log of mocked requests (MockURLProtocol calls handlers on a background queue)
-nonisolated final class RequestLog: @unchecked Sendable {
-    private let lock = NSLock()
-    private var storage: [URLRequest] = []
-    private var code = 200
-
-    var requests: [URLRequest] { lock.withLock { storage } }
-    var statusCode: Int {
-        get { lock.withLock { code } }
-        set { lock.withLock { code = newValue } }
-    }
-
-    func record(_ request: URLRequest) -> Int {
-        lock.withLock {
-            storage.append(request)
-            return code
-        }
-    }
-}
-
 @MainActor
-final class AppDelegateIdleTests: XCTestCase {
-    var delegate: AppDelegate!
-    private var log = RequestLog()
-    private var requests: [URLRequest] { log.requests }
-    private var statusCode: Int {
-        get { log.statusCode }
-        set { log.statusCode = newValue }
-    }
-    private var storedRecents: Data?
-
-    private let coding = Activity(
-        id: 10, name: "Coding", parentTitle: "Kimai", project: 20, color: nil, timesheetId: nil
-    )
-    private let meeting = Activity(
-        id: 3, name: "Meeting", parentTitle: "Intern", project: 5, color: nil, timesheetId: nil
-    )
-
-    override func setUp() {
-        super.setUp()
-        storedRecents = UserDefaults.standard.data(forKey: "recentActivitys")
-        UserDefaults.standard.removeObject(forKey: "recentActivitys")
-
-        let config = URLSessionConfiguration.ephemeral
-        config.protocolClasses = [MockURLProtocol.self]
-
-        delegate = AppDelegate()
-        delegate.apiManager = ApiManager(session: URLSession(configuration: config))
-        delegate.apiManager.serverIP = "https://demo.kimai.org"
-        delegate.timerModel = TimerModel()
-        delegate.iconModel = IconModel()
-        delegate.recentActivitiesManager = RecentActivitiesManager()
-
-        log = RequestLog()
-        MockURLProtocol.requestHandler = { [log] request in
-            let code = log.record(request)
-            let response = HTTPURLResponse(url: request.url!, statusCode: code, httpVersion: nil, headerFields: nil)!
-            return (response, Data(#"{"id": 4711}"#.utf8))
-        }
-    }
-
-    override func tearDown() {
-        delegate.timerModel.stop()
-        MockURLProtocol.requestHandler = nil
-        delegate = nil
-        if let storedRecents {
-            UserDefaults.standard.set(storedRecents, forKey: "recentActivitys")
-        } else {
-            UserDefaults.standard.removeObject(forKey: "recentActivitys")
-        }
-        super.tearDown()
-    }
-
-    // MARK: - Helpers
-
-    private func startRunningSession(timer: TimeInterval = 3600, timesheetId: Int = 99) {
-        delegate.apiManager.activeActivity = coding
-        delegate.apiManager.activeTimesheetId = timesheetId
-        delegate.timerModel.start(timer)
-    }
-
-    private func waitUntil(_ condition: () -> Bool, timeout: TimeInterval = 2) {
-        let deadline = Date().addingTimeInterval(timeout)
-        while !condition() && Date() < deadline {
-            RunLoop.main.run(until: Date().addingTimeInterval(0.01))
-        }
-        XCTAssertTrue(condition())
-    }
-
-    private func body(_ request: URLRequest) -> [String: Any] {
-        request.jsonBody ?? [:]
-    }
-
-    private func endDate(of request: URLRequest?) -> Date? {
-        guard let request, let end = body(request)["end"] as? String else { return nil }
-        return ISO8601DateFormatter().date(from: end)
-    }
-
+final class AppDelegateIdleTests: AppDelegateTestCase {
     // MARK: - Idle actions
 
     func testContinueDiscardIdleAddsOffsetAndResumes() {
@@ -129,6 +33,7 @@ final class AppDelegateIdleTests: XCTestCase {
 
     func testStopTimerEndsAtIdleStartMinusPreviousIdleOffset() {
         startRunningSession()
+        delegate.timerModel.pause()
         delegate.apiManager.totalIdleOffset = 900
         let idleStart = Date().addingTimeInterval(-600)
 
@@ -163,73 +68,45 @@ final class AppDelegateIdleTests: XCTestCase {
         XCTAssertTrue(requests.isEmpty)
     }
 
-    // MARK: - Sleep
-
-    func testWillSleepStopsTimesheetAtSleepTime() {
+    func testIdleActionIgnoredWhenResumedByHand() {
         startRunningSession()
-        let before = Date()
 
-        delegate.handleWillSleep()
-        waitUntil { delegate.apiManager.activeActivity == nil }
+        delegate.handleIdleAction(.continueKeepIdle, idleStart: Date().addingTimeInterval(-600))
 
-        let end = endDate(of: requests.first)?.timeIntervalSince1970 ?? 0
-        XCTAssertEqual(end, before.timeIntervalSince1970, accuracy: 2)
-        XCTAssertNil(delegate.pendingSleepStop)
-        XCTAssertEqual(delegate.timerModel.timer, 0)
-    }
-
-    func testWillSleepDuringOpenIdleAlertEndsAtIdleStart() {
-        startRunningSession()
-        let idleStart = Date().addingTimeInterval(-1200)
-        delegate.pendingIdleStart = idleStart
-
-        delegate.handleWillSleep()
-        waitUntil { delegate.apiManager.activeActivity == nil }
-
-        let end = endDate(of: requests.first)?.timeIntervalSince1970 ?? 0
-        XCTAssertEqual(end, idleStart.timeIntervalSince1970, accuracy: 1)
-    }
-
-    func testFailedSleepStopIsRetriedOnWake() {
-        startRunningSession()
-        statusCode = 500
-
-        delegate.handleWillSleep()
-        waitUntil { requests.count == 1 }
-        RunLoop.main.run(until: Date().addingTimeInterval(0.1))
-
-        XCTAssertNotNil(delegate.pendingSleepStop)
-        XCTAssertNotNil(delegate.apiManager.activeActivity)
-        XCTAssertEqual(delegate.timerModel.isActive, false)
-
-        statusCode = 200
-        delegate.handleDidWake()
-        waitUntil { delegate.apiManager.activeActivity == nil }
-
-        XCTAssertNil(delegate.pendingSleepStop)
-        XCTAssertEqual(endDate(of: requests.last), endDate(of: requests.first))
-    }
-
-    func testWillSleepWithoutTimerDoesNothing() {
-        delegate.handleWillSleep()
-        delegate.handleDidWake()
-
-        XCTAssertNil(delegate.pendingSleepStop)
+        XCTAssertEqual(delegate.timerModel.timer, 3600, accuracy: 1)
         XCTAssertTrue(requests.isEmpty)
     }
 
-    func testWillSleepWhilePausedEndsSessionLocally() {
+    func testAskForIdleActionShowsAlertAndAppliesAnswer() {
         startRunningSession()
-        delegate.apiManager.activeTimesheetId = nil
+        delegate.timerModel.pause()
+        let idleStart = Date().addingTimeInterval(-300)
+
+        delegate.askForIdleAction(idleStart: idleStart)
+
+        XCTAssertEqual(shownAlerts, [idleStart])
+        XCTAssertEqual(delegate.pendingIdleStart, idleStart)
+
+        answerAlert?(.continueDiscardIdle)
+
+        XCTAssertNil(delegate.pendingIdleStart)
+        XCTAssertEqual(delegate.timerModel.isActive, true)
+        XCTAssertEqual(delegate.apiManager.totalIdleOffset, 300, accuracy: 2)
+    }
+
+    func testAskForIdleActionAppliesRememberedChoiceWithoutAlert() {
+        UserDefaults.standard.set(true, forKey: IdleAction.rememberKey)
+        UserDefaults.standard.set(IdleAction.continueKeepIdle.rawValue, forKey: IdleAction.rememberedActionKey)
+        startRunningSession()
         delegate.timerModel.pause()
 
-        delegate.handleWillSleep()
-        waitUntil { delegate.apiManager.activeActivity == nil }
+        delegate.askForIdleAction(idleStart: Date().addingTimeInterval(-300))
 
-        XCTAssertTrue(requests.isEmpty)
-        XCTAssertEqual(delegate.timerModel.timer, 0)
+        XCTAssertTrue(shownAlerts.isEmpty)
+        XCTAssertNil(delegate.pendingIdleStart)
+        XCTAssertEqual(delegate.timerModel.isActive, true)
+        XCTAssertEqual(delegate.timerModel.timer, 3900, accuracy: 2)
     }
-
     // MARK: - Quick actions
 
     func testStartLastWhileStoppedStartsRecentActivityFromZero() {
@@ -307,6 +184,4 @@ final class AppDelegateIdleTests: XCTestCase {
         XCTAssertEqual(delegate.timerModel.timer, 0)
         XCTAssertEqual(delegate.apiManager.sessionDescription, "")
     }
-
-    private var cancellables = Set<AnyCancellable>()
 }

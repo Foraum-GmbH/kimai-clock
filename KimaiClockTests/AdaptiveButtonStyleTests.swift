@@ -2,6 +2,7 @@ import SwiftUI
 import XCTest
 @testable import KimaiClock
 
+@MainActor
 final class AdaptiveButtonStyleTests: XCTestCase {
     func testProperties() {
         let styleDefault = AdaptiveButtonStyle()
